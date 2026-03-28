@@ -28,8 +28,8 @@
         </div>
         <div class="auth-card">
           <div class="tabs compact" data-auth-switch>
-            <button class="tab active" data-auth-target="loginForm">Ingresar</button>
-            <button class="tab" data-auth-target="signupForm">Crear cuenta</button>
+            <button type="button" class="tab active" data-auth-target="loginForm" onclick="switchAuthTab('loginForm', this)">Ingresar</button>
+            <button type="button" class="tab" data-auth-target="signupForm" onclick="switchAuthTab('signupForm', this)">Crear cuenta</button>
           </div>
 
           <form id="loginForm" class="form-stack">
