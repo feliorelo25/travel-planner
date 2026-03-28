@@ -853,3 +853,80 @@ select option { background: #0c1628; }
   .trip-grid { grid-template-columns: 1fr; }
   .note-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   AUTOCOMPLETE NOMINATIM
+   ============================================================ */
+.autocomplete-wrap {
+  position: relative;
+  width: 100%;
+}
+.autocomplete-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: #0c1628;
+  border: 1px solid rgba(45,212,191,0.25);
+  border-radius: 14px;
+  list-style: none;
+  padding: 6px;
+  margin: 0;
+  z-index: 9999;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.autocomplete-list li {
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted-hi);
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.autocomplete-list li:hover,
+.autocomplete-list li.active {
+  background: rgba(45,212,191,0.10);
+  color: var(--teal);
+}
+.autocomplete-list li::before {
+  content: '📍';
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Flatpickr overrides para el tema oscuro */
+.flatpickr-calendar {
+  background: #0c1628 !important;
+  border: 1px solid rgba(45,212,191,0.2) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5) !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+  background: var(--teal-dim) !important;
+  border-color: var(--teal-dim) !important;
+  color: #061018 !important;
+}
+.flatpickr-day:hover {
+  background: rgba(45,212,191,0.12) !important;
+  color: var(--teal) !important;
+}
+.flatpickr-months .flatpickr-month,
+.flatpickr-weekdays,
+span.flatpickr-weekday {
+  background: transparent !important;
+  color: var(--muted-hi) !important;
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+  color: var(--text) !important;
+}
+.flatpickr-time input {
+  color: var(--text) !important;
+  background: transparent !important;
+}

@@ -647,3 +647,114 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
 });
+
+// ============================================================
+// FLATPICKR — calendarios y horarios
+// ============================================================
+
+function initFlatpickr() {
+  // Fechas solas
+  document.querySelectorAll('.flatpickr-date').forEach(el => {
+    if (el._flatpickr) return;
+    flatpickr(el, {
+      dateFormat: 'Y-m-d',
+      locale: 'es',
+      allowInput: true,
+      disableMobile: false
+    });
+  });
+
+  // Fecha + hora
+  document.querySelectorAll('.flatpickr-datetime').forEach(el => {
+    if (el._flatpickr) return;
+    flatpickr(el, {
+      enableTime: true,
+      dateFormat: 'Y-m-d H:i',
+      time_24hr: true,
+      locale: 'es',
+      allowInput: true,
+      disableMobile: false
+    });
+  });
+
+  // Solo hora
+  document.querySelectorAll('.flatpickr-time').forEach(el => {
+    if (el._flatpickr) return;
+    flatpickr(el, {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: 'H:i',
+      time_24hr: true,
+      locale: 'es',
+      allowInput: true
+    });
+  });
+}
+
+// Inicializar flatpickr cuando se abre un modal
+const _origOpenModal = openModal;
+openModal = function(id) {
+  _origOpenModal(id);
+  setTimeout(initFlatpickr, 50);
+};
+
+// ============================================================
+// NOMINATIM — autocompletar lugares
+// ============================================================
+
+let nominatimTimer = null;
+
+function setupAutocomplete(inputId, listId) {
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  if (!input || !list) return;
+
+  input.addEventListener('input', () => {
+    clearTimeout(nominatimTimer);
+    const q = input.value.trim();
+    if (q.length < 3) { list.classList.add('hidden'); return; }
+
+    nominatimTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=es`,
+          { headers: { 'Accept-Language': 'es' } }
+        );
+        const data = await res.json();
+        if (!data.length) { list.classList.add('hidden'); return; }
+
+        list.innerHTML = data.map((place, i) =>
+          `<li data-name="${place.display_name.split(',').slice(0,3).join(', ')}" data-idx="${i}">
+            ${place.display_name.split(',').slice(0,3).join(', ')}
+          </li>`
+        ).join('');
+        list.classList.remove('hidden');
+
+        list.querySelectorAll('li').forEach(li => {
+          li.addEventListener('click', () => {
+            input.value = li.dataset.name;
+            list.classList.add('hidden');
+            // Disparar evento change para que FormData lo capture
+            input.dispatchEvent(new Event('change'));
+          });
+        });
+      } catch(e) {
+        list.classList.add('hidden');
+      }
+    }, 400);
+  });
+
+  // Cerrar al hacer click afuera
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !list.contains(e.target)) {
+      list.classList.add('hidden');
+    }
+  });
+}
+
+// Inicializar autocompletes cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  setupAutocomplete('originInput', 'originList');
+  setupAutocomplete('destinationInput', 'destinationList');
+  setupAutocomplete('activityPlaceInput', 'activityPlaceList');
+});

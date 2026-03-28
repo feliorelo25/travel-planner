@@ -11,6 +11,11 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="stylesheet" href="styles.css" />
+  <!-- Flatpickr calendar -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css" />
+  <!-- Favicon avión -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>" />
 </head>
 <body>
   <div id="app">
@@ -388,8 +393,8 @@
         <input type="hidden" name="tripId" />
         <label>Nombre del viaje<input name="name" required /></label>
         <label>Destino principal<input name="destination" required /></label>
-        <label>Fecha de inicio<input type="date" name="startDate" /></label>
-        <label>Fecha de fin<input type="date" name="endDate" /></label>
+        <label>Fecha de inicio<input type="text" class="flatpickr-date" name="startDate" placeholder="Seleccioná fecha" /></label>
+        <label>Fecha de fin<input type="text" class="flatpickr-date" name="endDate" placeholder="Seleccioná fecha" /></label>
         <label>Estado
           <select name="status">
             <option value="planeado">Planeado</option>
@@ -419,10 +424,20 @@
       <div class="modal-head"><h3>Agregar transporte</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
       <form id="transportForm" class="form-grid compact-grid">
         <label>Tipo<select name="type"><option>vuelo</option><option>tren</option><option>barco</option><option>auto</option><option>bus</option><option>otros</option></select></label>
-        <label>Origen<input name="origin" required /></label>
-        <label>Destino<input name="destination" required /></label>
-        <label>Salida<input type="datetime-local" name="departure" /></label>
-        <label>Llegada<input type="datetime-local" name="arrival" /></label>
+        <label>Origen
+          <div class="autocomplete-wrap">
+            <input name="origin" id="originInput" autocomplete="off" placeholder="Ej: Buenos Aires" required />
+            <ul class="autocomplete-list hidden" id="originList"></ul>
+          </div>
+        </label>
+        <label>Destino
+          <div class="autocomplete-wrap">
+            <input name="destination" id="destinationInput" autocomplete="off" placeholder="Ej: Madrid" required />
+            <ul class="autocomplete-list hidden" id="destinationList"></ul>
+          </div>
+        </label>
+        <label>Salida<input type="text" class="flatpickr-datetime" name="departure" placeholder="Seleccioná fecha y hora" /></label>
+        <label>Llegada<input type="text" class="flatpickr-datetime" name="arrival" placeholder="Seleccioná fecha y hora" /></label>
         <label>Empresa<input name="company" /></label>
         <label>Referencia<input name="reference" /></label>
         <label>Costo<input type="number" step="0.01" name="cost" /></label>
@@ -441,8 +456,8 @@
         <label>Tipo<select name="type"><option>hotel</option><option>Airbnb</option><option>hostel</option><option>departamento</option><option>otro</option></select></label>
         <label>Nombre<input name="name" required /></label>
         <label class="full">Dirección<input name="address" /></label>
-        <label>Check-in<input type="date" name="check_in" /></label>
-        <label>Check-out<input type="date" name="check_out" /></label>
+        <label>Check-in<input type="text" class="flatpickr-date" name="check_in" placeholder="Seleccioná fecha" /></label>
+        <label>Check-out<input type="text" class="flatpickr-date" name="check_out" placeholder="Seleccioná fecha" /></label>
         <label>Noches<input type="number" name="nights" /></label>
         <label>Costo<input type="number" step="0.01" name="cost" /></label>
         <label>Moneda<input name="currency" placeholder="USD" /></label>
@@ -458,8 +473,8 @@
     <div class="modal-card glass">
       <div class="modal-head"><h3>Nueva actividad diaria</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
       <form id="itineraryForm" class="form-grid compact-grid">
-        <label>Día<input type="date" name="date" required /></label>
-        <label>Horario<input type="time" name="time" /></label>
+        <label>Día<input type="text" class="flatpickr-date" name="date" placeholder="Seleccioná fecha" required /></label>
+        <label>Horario<input type="text" class="flatpickr-time" name="time" placeholder="Seleccioná horario" /></label>
         <label>Lugar<input name="place" /></label>
         <label>Actividad<input name="title" required /></label>
         <label>Prioridad<select name="priority"><option>alta</option><option>media</option><option>baja</option></select></label>
@@ -476,9 +491,14 @@
       <div class="modal-head"><h3>Nueva excursión</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
       <form id="activityForm" class="form-grid compact-grid">
         <label>Nombre<input name="name" required /></label>
-        <label>Fecha<input type="date" name="date" /></label>
-        <label>Horario<input type="time" name="time" /></label>
-        <label>Lugar<input name="place" /></label>
+        <label>Fecha<input type="text" class="flatpickr-date" name="date" placeholder="Seleccioná fecha" /></label>
+        <label>Horario<input type="text" class="flatpickr-time" name="time" placeholder="Seleccioná horario" /></label>
+        <label>Lugar
+          <div class="autocomplete-wrap">
+            <input name="place" id="activityPlaceInput" autocomplete="off" placeholder="Ej: Coliseo, Roma" />
+            <ul class="autocomplete-list hidden" id="activityPlaceList"></ul>
+          </div>
+        </label>
         <label>Proveedor<input name="provider" /></label>
         <label>Costo<input type="number" step="0.01" name="cost" /></label>
         <label>Moneda<input name="currency" placeholder="USD" /></label>
@@ -499,7 +519,7 @@
         <label>Categoría<select name="category"><option>transporte</option><option>alojamiento</option><option>comida</option><option>excursiones</option><option>compras</option><option>otros</option></select></label>
         <label>Importe<input type="number" step="0.01" name="amount" required /></label>
         <label>Moneda<input name="currency" placeholder="USD" required /></label>
-        <label>Fecha<input type="date" name="date" /></label>
+        <label>Fecha<input type="text" class="flatpickr-date" name="date" placeholder="Seleccioná fecha" /></label>
         <label>Método de pago<input name="payment_method" placeholder="Tarjeta, efectivo..." /></label>
         <label class="full">Notas<textarea name="notes"></textarea></label>
         <button class="btn btn-primary full" type="submit">Guardar gasto</button>
@@ -543,6 +563,8 @@
   <!-- SCRIPTS -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.to/flatpickr/dist/l10n/es.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
