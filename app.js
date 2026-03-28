@@ -647,7 +647,7 @@ function renderForum() {
     return;
   }
   el.innerHTML = state.forumPosts.map(post => {
-    const author = post.profiles?.username || "Viajero";
+    const author = post._username || "Viajero";
     const date = new Date(post.created_at).toLocaleDateString("es-AR");
     return `
       <div class="forum-card">
@@ -1116,39 +1116,31 @@ async function loadRanking(period) {
   flightsEl.innerHTML = '<p class="muted">Calculando...</p>';
   kmEl.innerHTML = '<p class="muted">Calculando km (puede tardar unos segundos)...</p>';
 
-  // Traer todos los transportes tipo vuelo con perfil del usuario
-  let query = supabase
-    .from('trip_transports')
-    .select('*, trips(user_id), profiles:trips(user_id(username))')
-    .eq('type', 'vuelo');
+  try {
+  // Traer trips (lectura pública)
+  const { data: trips, error: tripsErr } = await supabase.from('trips').select('id, user_id');
+  if (tripsErr) throw tripsErr;
+  const tripUserMap = {};
+  (trips || []).forEach(t => { tripUserMap[t.id] = t.user_id; });
 
-  // Filtrar por año si corresponde
+  // Traer vuelos
+  let flightsQuery = supabase.from('trip_transports')
+    .select('trip_id, origin, destination').eq('type', 'vuelo');
   if (period === 'year') {
     const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
-    query = query.gte('created_at', yearStart);
+    flightsQuery = flightsQuery.gte('created_at', yearStart);
   }
+  const { data: flights, error: flErr } = await flightsQuery;
+  if (flErr) throw flErr;
 
-  const { data: flights, error } = await query;
-
-  if (error || !flights) {
-    flightsEl.innerHTML = '<p class="muted">Error cargando datos.</p>';
-    kmEl.innerHTML = '';
-    return;
-  }
-
-  // Necesitamos los usernames — traer profiles por separado
+  // Traer perfiles
   const { data: profiles } = await supabase.from('profiles').select('id, username');
   const profileMap = {};
   (profiles || []).forEach(p => { profileMap[p.id] = p.username || 'Viajero'; });
 
-  // Traer trips para mapear user_id
-  const { data: trips } = await supabase.from('trips').select('id, user_id');
-  const tripUserMap = {};
-  (trips || []).forEach(t => { tripUserMap[t.id] = t.user_id; });
-
   // Agrupar vuelos por usuario
   const byUser = {};
-  flights.forEach(f => {
+  (flights || []).forEach(f => {
     const userId = tripUserMap[f.trip_id];
     if (!userId) return;
     if (!byUser[userId]) byUser[userId] = { flights: [], username: profileMap[userId] || 'Viajero' };
@@ -1213,6 +1205,12 @@ async function loadRanking(period) {
           <strong>${Math.round(myKm).toLocaleString('es-AR')}</strong>
         </div>
       </div>`;
+  }
+
+  } catch(err) {
+    console.error('Ranking error:', err);
+    flightsEl.innerHTML = '<p style="color:var(--danger);">Error: ' + (err.message || JSON.stringify(err)) + '</p>';
+    kmEl.innerHTML = '';
   }
 }
 
