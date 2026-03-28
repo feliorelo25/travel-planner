@@ -151,18 +151,3 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#logoutBtn").addEventListener("click", logout);
 
 });
-async function signup(email, password, username) {
-  console.log("SIGNUP CLICK");
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { username } }
-  });
-
-  console.log("RESULT:", data, error);
-
-  if (error) return alert(error.message);
-
-  alert("Cuenta creada. Revisá tu email.");
-}
