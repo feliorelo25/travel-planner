@@ -209,13 +209,19 @@ function showAuth(show = true) {
 }
 
 function renderAuthTabs() {
-  $('[data-auth-switch]').addEventListener('click', (e) => {
-    const button = e.target.closest('.tab');
-    if (!button) return;
-    $$('[data-auth-switch] .tab').forEach(tab => tab.classList.remove('active'));
-    button.classList.add('active');
-    $('#loginForm').classList.toggle('hidden', button.dataset.authTarget !== 'loginForm');
-    $('#signupForm').classList.toggle('hidden', button.dataset.authTarget !== 'signupForm');
+  const tabs = document.querySelectorAll("[data-auth-switch] .tab");
+  const loginForm = document.getElementById("loginForm");
+  const signupForm = document.getElementById("signupForm");
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      const target = tab.dataset.authTarget;
+      loginForm.classList.toggle("hidden", target !== "loginForm");
+      signupForm.classList.toggle("hidden", target !== "signupForm");
+    });
   });
 }
 
