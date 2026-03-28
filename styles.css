@@ -292,3 +292,11 @@ label.full { grid-column: 1 / -1; }
   .timeline-item { grid-template-columns: 1fr; }
   .map-box.large { height: 380px; }
 }
+.tabs {
+  position: relative;
+  z-index: 10;
+}
+
+.tab {
+  pointer-events: auto;
+}
