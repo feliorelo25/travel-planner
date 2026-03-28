@@ -720,102 +720,79 @@ function appendToSelectedTrip(key, item) {
 }
 
 function bindForms() {
-  $('#loginForm').addEventListener('submit', (e) => {
+
+  // LOGIN
+  $('#loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const data = new FormData(e.currentTarget);
     const email = String(data.get('email')).trim().toLowerCase();
     const password = String(data.get('password'));
-    const user = state.db.users.find(u => u.email.toLowerCase() === email && u.password === password);
-    if (!user) return alert('Usuario o contraseña incorrectos. Probá con demo@voyanta.app / demo1234');
-    setCurrentUser(user.id);
-    showAuth(false);
-    initMainApp();
-  });
 
-  $('#signupForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    const username = String(data.get('username')).trim();
-    const email = String(data.get('email')).trim().toLowerCase();
-    const password = String(data.get('password'));
-    if (state.db.users.some(u => u.email.toLowerCase() === email)) return alert('Ese email ya está registrado.');
-    const user = { id: uid(), username, email, password, createdAt: new Date().toISOString() };
-    state.db.users.push(user);
-    saveDB();
-    setCurrentUser(user.id);
-    showAuth(false);
-    initMainApp();
-  });
-
-  $('#tripForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    saveTripFromForm(new FormData(e.currentTarget));
-  });
-
-  $('#transportForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    appendToSelectedTrip('transport', Object.fromEntries(new FormData(e.currentTarget).entries()));
-    e.currentTarget.reset();
-  });
-
-  $('#stayForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const payload = Object.fromEntries(new FormData(e.currentTarget).entries());
-    payload.nights = Number(payload.nights || 0);
-    payload.cost = Number(payload.cost || 0);
-    appendToSelectedTrip('stays', payload);
-    e.currentTarget.reset();
-  });
-
-  $('#itineraryForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    appendToSelectedTrip('itinerary', Object.fromEntries(new FormData(e.currentTarget).entries()));
-    e.currentTarget.reset();
-  });
-
-  $('#activityForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const payload = Object.fromEntries(new FormData(e.currentTarget).entries());
-    payload.cost = Number(payload.cost || 0);
-    payload.people = Number(payload.people || 1);
-    appendToSelectedTrip('activities', payload);
-    e.currentTarget.reset();
-  });
-
-  $('#expenseForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const payload = Object.fromEntries(new FormData(e.currentTarget).entries());
-    payload.amount = Number(payload.amount || 0);
-    appendToSelectedTrip('expenses', payload);
-    e.currentTarget.reset();
-  });
-
-  $('#noteForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const payload = Object.fromEntries(new FormData(e.currentTarget).entries());
-    payload.createdAt = new Date().toISOString();
-    appendToSelectedTrip('notes', payload);
-    e.currentTarget.reset();
-  });
-
-  $('#postForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const payload = Object.fromEntries(new FormData(e.currentTarget).entries());
-    state.db.forumPosts.unshift({
-      id: uid(),
-      userId: state.currentUser.id,
-      author: state.currentUser.username,
-      title: payload.title,
-      category: payload.category,
-      content: payload.content,
-      createdAt: new Date().toISOString(),
-      comments: []
+    const { data: res, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
     });
-    saveDB();
-    renderForum();
-    closeAllModals();
-    e.currentTarget.reset();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    const user = res.user;
+
+    // buscar usuario en local
+    let localUser = state.db.users.find(u => u.email === user.email);
+
+    // si no existe lo creamos
+    if (!localUser) {
+      localUser = {
+        id: user.id,
+        username: user.user_metadata?.username || user.email,
+        email: user.email,
+        createdAt: new Date().toISOString()
+      };
+
+      state.db.users.push(localUser);
+      saveDB();
+    }
+
+    // LOGIN APP
+    setCurrentUser(localUser.id);
+    showAuth(false);
+    initMainApp();
   });
+
+
+  // SIGNUP
+  $('#signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const data = new FormData(e.currentTarget);
+    const email = String(data.get('email')).trim().toLowerCase();
+    const password = String(data.get('password'));
+    const username = String(data.get('username')).trim();
+
+    console.log("SIGNUP...");
+
+    const { data: res, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username }
+      }
+    });
+
+    console.log("RESULT:", res, error);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert("Cuenta creada! Revisá tu email (o logueate si desactivaste confirmación).");
+  });
+
 }
 
 function bindGlobalActions() {
