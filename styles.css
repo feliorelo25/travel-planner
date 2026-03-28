@@ -300,3 +300,8 @@ label.full { grid-column: 1 / -1; }
 .tab {
   pointer-events: auto;
 }
+
+.auth-card {
+  position: relative;
+  z-index: 20;
+}

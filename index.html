@@ -27,38 +27,45 @@
           </div>
         </div>
         <div class="auth-card">
-          <div class="tabs compact" data-auth-switch>
-            <button type="button" class="tab active" data-auth-target="loginForm" onclick="switchAuthTab('loginForm', this)">Ingresar</button>
-            <button type="button" class="tab" data-auth-target="signupForm" onclick="switchAuthTab('signupForm', this)">Crear cuenta</button>
-          </div>
+  <div class="tabs compact">
+    <button type="button" class="tab active"
+      onclick="document.getElementById('loginForm').style.display='block'; document.getElementById('signupForm').style.display='none'; this.classList.add('active'); this.nextElementSibling.classList.remove('active');">
+      Ingresar
+    </button>
 
-          <form id="loginForm" class="form-stack">
-            <h2>Bienvenido de nuevo</h2>
-            <label>Email
-              <input type="email" name="email" placeholder="tu@email.com" required />
-            </label>
-            <label>Contraseña
-              <input type="password" name="password" placeholder="••••••••" required />
-            </label>
-            <button class="btn btn-primary" type="submit">Iniciar sesión</button>
-            <p class="muted small">Demo: entrá con el usuario precargado o creá uno nuevo.</p>
-          </form>
+    <button type="button" class="tab"
+      onclick="document.getElementById('loginForm').style.display='none'; document.getElementById('signupForm').style.display='block'; this.classList.add('active'); this.previousElementSibling.classList.remove('active');">
+      Crear cuenta
+    </button>
+  </div>
 
-          <form id="signupForm" class="form-stack hidden">
-            <h2>Crear cuenta</h2>
-            <label>Usuario
-              <input type="text" name="username" placeholder="felipeviajero" required />
-            </label>
-            <label>Email
-              <input type="email" name="email" placeholder="tu@email.com" required />
-            </label>
-            <label>Contraseña
-              <input type="password" name="password" placeholder="mínimo 6 caracteres" minlength="6" required />
-            </label>
-            <button class="btn btn-primary" type="submit">Crear cuenta</button>
-            <p class="muted small">Arquitectura preparada para integrar Supabase más adelante.</p>
-          </form>
-        </div>
+  <!-- LOGIN -->
+  <form id="loginForm" class="form-stack" style="display:block;">
+    <h2>Bienvenido de nuevo</h2>
+    <label>Email
+      <input type="email" name="email" placeholder="tu@email.com" required />
+    </label>
+    <label>Contraseña
+      <input type="password" name="password" placeholder="••••••••" required />
+    </label>
+    <button class="btn btn-primary" type="submit">Iniciar sesión</button>
+  </form>
+
+  <!-- SIGNUP -->
+  <form id="signupForm" class="form-stack" style="display:none;">
+    <h2>Crear cuenta</h2>
+    <label>Usuario
+      <input type="text" name="username" placeholder="felipeviajero" required />
+    </label>
+    <label>Email
+      <input type="email" name="email" placeholder="tu@email.com" required />
+    </label>
+    <label>Contraseña
+      <input type="password" name="password" placeholder="mínimo 6 caracteres" minlength="6" required />
+    </label>
+    <button class="btn btn-primary" type="submit">Crear cuenta</button>
+  </form>
+</div>
       </div>
     </section>
 

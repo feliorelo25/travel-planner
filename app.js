@@ -30,6 +30,20 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 const uid = () => `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+window.switchAuthTab = function (target, clickedButton) {
+  console.log("switchAuthTab ejecutó:", target);
+
+  const loginForm = document.getElementById("loginForm");
+  const signupForm = document.getElementById("signupForm");
+  const tabs = document.querySelectorAll("[data-auth-switch] .tab");
+
+  tabs.forEach((tab) => tab.classList.remove("active"));
+  if (clickedButton) clickedButton.classList.add("active");
+
+  loginForm.classList.toggle("hidden", target !== "loginForm");
+  signupForm.classList.toggle("hidden", target !== "signupForm");
+};
+
 function switchAuthTab(target, clickedButton) {
   const loginForm = document.getElementById("loginForm");
   const signupForm = document.getElementById("signupForm");
