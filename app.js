@@ -20,8 +20,50 @@ var state = {
   currentUser: null,
   trips: [],
   selectedTripId: null,
-  forumPosts: []
+  forumPosts: [],
+  costs: { transports: {}, stays: {}, activities: {}, expenses: {} }
 };
+
+function sumCosts(items, amountField, currencyField) {
+  amountField = amountField || 'cost';
+  currencyField = currencyField || 'currency';
+  var totals = {};
+  items.forEach(function(i) {
+    var amt = parseFloat(i[amountField]);
+    var cur = (i[currencyField] || 'USD').toUpperCase();
+    if (!isNaN(amt) && amt > 0) totals[cur] = (totals[cur] || 0) + amt;
+  });
+  return totals;
+}
+
+function fmtTotals(totals) {
+  var entries = Object.entries(totals);
+  if (!entries.length) return '—';
+  return entries.map(function(e) { return e[0] + ' ' + e[1].toFixed(2); }).join(' · ');
+}
+
+function mergeTotals() {
+  var merged = {};
+  Array.from(arguments).forEach(function(obj) {
+    Object.entries(obj).forEach(function(e) {
+      merged[e[0]] = (merged[e[0]] || 0) + e[1];
+    });
+  });
+  return merged;
+}
+
+function subtotalBar(totals, label) {
+  var entries = Object.entries(totals);
+  if (!entries.length) return '';
+  var texto = entries.map(function(e) { return '<strong>' + e[0] + ' ' + e[1].toFixed(2) + '</strong>'; }).join(' &nbsp;·&nbsp; ');
+  return '<div class="subtotal-bar"><span><i class="fa-solid fa-calculator"></i> ' + label + '</span><div>' + texto + '</div></div>';
+}
+
+function updateGlobalSpent() {
+  var all = mergeTotals(state.costs.transports, state.costs.stays, state.costs.activities, state.costs.expenses);
+  var el = document.querySelector('#overviewSpent');
+  if (el) el.textContent = fmtTotals(all);
+}
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
@@ -154,6 +196,7 @@ function openTrip(trip) {
 }
 
 async function loadTripItems(tripId) {
+  state.costs = { transports: {}, stays: {}, activities: {}, expenses: {} };
   const tables = [
     { table: "trip_transports", render: renderTransports },
     { table: "trip_stays", render: renderStays },
@@ -166,11 +209,13 @@ async function loadTripItems(tripId) {
     const { data } = await supabase.from(table).select("*").eq("trip_id", tripId).order("created_at");
     render(data || []);
   }
+  updateGlobalSpent();
 }
 
 function renderTransports(items) {
   const el = $("#transportList");
   if (!items.length) { el.innerHTML = emptyMsg("No hay tramos de transporte aún."); return; }
+  state.costs.transports = sumCosts(items);
   el.innerHTML = items.map(i => `
     <div class="item-card">
       <div class="item-card-top">
@@ -180,16 +225,17 @@ function renderTransports(items) {
       <div class="item-meta">
         <span><i class="fa-solid fa-calendar"></i> ${fmtDate(i.departure)}</span>
         ${i.company ? `<span><i class="fa-solid fa-building"></i> ${i.company}</span>` : ""}
-        ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${i.cost}</span>` : ""}
+        ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${parseFloat(i.cost).toFixed(2)}</span>` : ""}
       </div>
       ${i.notes ? `<p class="item-notes">${i.notes}</p>` : ""}
     </div>
-  `).join("");
+  `).join("") + subtotalBar(state.costs.transports, "Subtotal transporte");
 }
 
 function renderStays(items) {
   const el = $("#stayList");
   if (!items.length) { el.innerHTML = emptyMsg("No hay alojamientos aún."); return; }
+  state.costs.stays = sumCosts(items);
   el.innerHTML = items.map(i => `
     <div class="item-card">
       <div class="item-card-top">
@@ -199,10 +245,10 @@ function renderStays(items) {
       <div class="item-meta">
         ${i.check_in ? `<span><i class="fa-solid fa-right-to-bracket"></i> ${fmtDate(i.check_in)}</span>` : ""}
         ${i.check_out ? `<span><i class="fa-solid fa-right-from-bracket"></i> ${fmtDate(i.check_out)}</span>` : ""}
-        ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${i.cost}</span>` : ""}
+        ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${parseFloat(i.cost).toFixed(2)}</span>` : ""}
       </div>
     </div>
-  `).join("");
+  `).join("") + subtotalBar(state.costs.stays, "Subtotal alojamiento");
 }
 
 function renderItinerary(items) {
@@ -235,6 +281,7 @@ function renderItinerary(items) {
 function renderActivities(items) {
   const el = $("#activityList");
   if (!items.length) { el.innerHTML = emptyMsg("No hay excursiones aún."); return; }
+  state.costs.activities = sumCosts(items);
   el.innerHTML = items.map(i => `
     <div class="item-card">
       <div class="item-card-top">
@@ -244,41 +291,35 @@ function renderActivities(items) {
       <div class="item-meta">
         ${i.date ? `<span><i class="fa-solid fa-calendar"></i> ${fmtDate(i.date)}</span>` : ""}
         ${i.place ? `<span><i class="fa-solid fa-location-dot"></i> ${i.place}</span>` : ""}
-        ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${i.cost}</span>` : ""}
+        ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${parseFloat(i.cost).toFixed(2)}</span>` : ""}
       </div>
     </div>
-  `).join("");
+  `).join("") + subtotalBar(state.costs.activities, "Subtotal excursiones");
 }
 
 function renderExpenses(items) {
   const el = $("#expenseList");
   const summaryEl = $("#expenseSummary");
-  if (!items.length) { el.innerHTML = emptyMsg("Sin gastos cargados."); summaryEl.innerHTML = ""; return; }
+  if (!items.length) { el.innerHTML = emptyMsg("Sin gastos extras cargados."); summaryEl.innerHTML = ""; return; }
+
+  state.costs.expenses = sumCosts(items, "amount", "currency");
 
   el.innerHTML = items.map(i => `
     <div class="item-card">
       <div class="item-card-top">
         <h4>${i.concept}</h4>
-        <strong>${i.currency} ${i.amount}</strong>
+        <strong>${i.currency} ${parseFloat(i.amount).toFixed(2)}</strong>
       </div>
       <div class="item-meta">
         <span class="badge">${i.category}</span>
         ${i.date ? `<span><i class="fa-solid fa-calendar"></i> ${fmtDate(i.date)}</span>` : ""}
       </div>
     </div>
-  `).join("");
+  `).join("") + subtotalBar(state.costs.expenses, "Subtotal gastos extras");
 
-  const totals = {};
-  items.forEach(i => { totals[i.currency] = (totals[i.currency] || 0) + parseFloat(i.amount); });
-  summaryEl.innerHTML = Object.entries(totals).map(([cur, total]) => `
+  summaryEl.innerHTML = Object.entries(state.costs.expenses).map(([cur, total]) => `
     <div class="summary-item"><span>${cur}</span><strong>${total.toFixed(2)}</strong></div>
   `).join("");
-
-  const trip = state.trips.find(t => t.id === state.selectedTripId);
-  if (trip?.budget) {
-    const totalInBase = totals[trip.base_currency] || 0;
-    $("#overviewSpent").textContent = `${trip.base_currency} ${totalInBase.toFixed(2)}`;
-  }
 }
 
 function renderNotes(items) {
@@ -649,112 +690,167 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // ============================================================
-// FLATPICKR — calendarios y horarios
+// RANKING DE VIAJEROS
 // ============================================================
 
-function initFlatpickr() {
-  // Fechas solas
-  document.querySelectorAll('.flatpickr-date').forEach(el => {
-    if (el._flatpickr) return;
-    flatpickr(el, {
-      dateFormat: 'Y-m-d',
-      locale: 'es',
-      allowInput: true,
-      disableMobile: false
-    });
-  });
-
-  // Fecha + hora
-  document.querySelectorAll('.flatpickr-datetime').forEach(el => {
-    if (el._flatpickr) return;
-    flatpickr(el, {
-      enableTime: true,
-      dateFormat: 'Y-m-d H:i',
-      time_24hr: true,
-      locale: 'es',
-      allowInput: true,
-      disableMobile: false
-    });
-  });
-
-  // Solo hora
-  document.querySelectorAll('.flatpickr-time').forEach(el => {
-    if (el._flatpickr) return;
-    flatpickr(el, {
-      enableTime: true,
-      noCalendar: true,
-      dateFormat: 'H:i',
-      time_24hr: true,
-      locale: 'es',
-      allowInput: true
-    });
-  });
+// Haversine: distancia en km entre dos puntos lat/lng
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// Inicializar flatpickr cuando se abre un modal
-const _origOpenModal = openModal;
-openModal = function(id) {
-  _origOpenModal(id);
-  setTimeout(initFlatpickr, 50);
-};
+// Cache de coordenadas para no repetir llamadas
+const coordCache = {};
 
-// ============================================================
-// NOMINATIM — autocompletar lugares
-// ============================================================
+async function getCoords(place) {
+  if (!place) return null;
+  const key = place.trim().toLowerCase();
+  if (coordCache[key]) return coordCache[key];
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1`,
+      { headers: { 'Accept-Language': 'es' } }
+    );
+    const data = await res.json();
+    if (!data.length) return null;
+    const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+    coordCache[key] = coords;
+    return coords;
+  } catch(e) { return null; }
+}
 
-let nominatimTimer = null;
+function switchRankingTab(btn) {
+  document.querySelectorAll('.ranking-period-tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
 
-function setupAutocomplete(inputId, listId) {
-  const input = document.getElementById(inputId);
-  const list = document.getElementById(listId);
-  if (!input || !list) return;
+async function loadRanking(period) {
+  const flightsEl = document.querySelector('#rankingFlights');
+  const kmEl = document.querySelector('#rankingKm');
+  const myEl = document.querySelector('#myRankingStats');
 
-  input.addEventListener('input', () => {
-    clearTimeout(nominatimTimer);
-    const q = input.value.trim();
-    if (q.length < 3) { list.classList.add('hidden'); return; }
+  flightsEl.innerHTML = '<p class="muted">Calculando...</p>';
+  kmEl.innerHTML = '<p class="muted">Calculando km (puede tardar unos segundos)...</p>';
 
-    nominatimTimer = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=es`,
-          { headers: { 'Accept-Language': 'es' } }
-        );
-        const data = await res.json();
-        if (!data.length) { list.classList.add('hidden'); return; }
+  // Traer todos los transportes tipo vuelo con perfil del usuario
+  let query = supabase
+    .from('trip_transports')
+    .select('*, trips(user_id), profiles:trips(user_id(username))')
+    .eq('type', 'vuelo');
 
-        list.innerHTML = data.map((place, i) =>
-          `<li data-name="${place.display_name.split(',').slice(0,3).join(', ')}" data-idx="${i}">
-            ${place.display_name.split(',').slice(0,3).join(', ')}
-          </li>`
-        ).join('');
-        list.classList.remove('hidden');
+  // Filtrar por año si corresponde
+  if (period === 'year') {
+    const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+    query = query.gte('created_at', yearStart);
+  }
 
-        list.querySelectorAll('li').forEach(li => {
-          li.addEventListener('click', () => {
-            input.value = li.dataset.name;
-            list.classList.add('hidden');
-            // Disparar evento change para que FormData lo capture
-            input.dispatchEvent(new Event('change'));
-          });
-        });
-      } catch(e) {
-        list.classList.add('hidden');
+  const { data: flights, error } = await query;
+
+  if (error || !flights) {
+    flightsEl.innerHTML = '<p class="muted">Error cargando datos.</p>';
+    kmEl.innerHTML = '';
+    return;
+  }
+
+  // Necesitamos los usernames — traer profiles por separado
+  const { data: profiles } = await supabase.from('profiles').select('id, username');
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p.username || 'Viajero'; });
+
+  // Traer trips para mapear user_id
+  const { data: trips } = await supabase.from('trips').select('id, user_id');
+  const tripUserMap = {};
+  (trips || []).forEach(t => { tripUserMap[t.id] = t.user_id; });
+
+  // Agrupar vuelos por usuario
+  const byUser = {};
+  flights.forEach(f => {
+    const userId = tripUserMap[f.trip_id];
+    if (!userId) return;
+    if (!byUser[userId]) byUser[userId] = { flights: [], username: profileMap[userId] || 'Viajero' };
+    byUser[userId].flights.push(f);
+  });
+
+  // ---- RANKING POR VUELOS ----
+  const flightRanking = Object.entries(byUser)
+    .map(([uid, d]) => ({ uid, username: d.username, count: d.flights.length }))
+    .sort((a, b) => b.count - a.count);
+
+  flightsEl.innerHTML = flightRanking.length
+    ? flightRanking.map((u, i) => rankingRow(i, u.username, u.count + ' vuelo' + (u.count !== 1 ? 's' : ''), u.uid === state.currentUser?.id)).join('')
+    : '<p class="muted">Sin datos de vuelos aún.</p>';
+
+  // ---- RANKING POR KM (con geocoding) ----
+  // Calcular km para cada usuario
+  const kmByUser = {};
+  for (const [uid, d] of Object.entries(byUser)) {
+    kmByUser[uid] = { username: d.username, km: 0, uid };
+    for (const f of d.flights) {
+      if (!f.origin || !f.destination) continue;
+      const [c1, c2] = await Promise.all([getCoords(f.origin), getCoords(f.destination)]);
+      if (c1 && c2) {
+        kmByUser[uid].km += haversineKm(c1.lat, c1.lon, c2.lat, c2.lon);
       }
-    }, 400);
-  });
-
-  // Cerrar al hacer click afuera
-  document.addEventListener('click', e => {
-    if (!input.contains(e.target) && !list.contains(e.target)) {
-      list.classList.add('hidden');
+      // Pequeña pausa para no saturar Nominatim
+      await new Promise(r => setTimeout(r, 150));
     }
-  });
+  }
+
+  const kmRanking = Object.values(kmByUser).sort((a, b) => b.km - a.km);
+
+  kmEl.innerHTML = kmRanking.length
+    ? kmRanking.map((u, i) => rankingRow(i, u.username, Math.round(u.km).toLocaleString('es-AR') + ' km', u.uid === state.currentUser?.id)).join('')
+    : '<p class="muted">Sin datos suficientes para calcular km.</p>';
+
+  // ---- TU POSICIÓN ----
+  const myId = state.currentUser?.id;
+  if (myId) {
+    const myFlightPos = flightRanking.findIndex(u => u.uid === myId);
+    const myKmPos = kmRanking.findIndex(u => u.uid === myId);
+    const myFlights = byUser[myId]?.flights.length || 0;
+    const myKm = kmByUser[myId]?.km || 0;
+
+    myEl.innerHTML = `
+      <div class="ranking-my-grid">
+        <div class="stat-card">
+          <span>Tu puesto (vuelos)</span>
+          <strong>${myFlightPos >= 0 ? '#' + (myFlightPos + 1) : 'Sin datos'}</strong>
+        </div>
+        <div class="stat-card">
+          <span>Tus vuelos</span>
+          <strong>${myFlights}</strong>
+        </div>
+        <div class="stat-card">
+          <span>Tu puesto (km)</span>
+          <strong>${myKmPos >= 0 ? '#' + (myKmPos + 1) : 'Sin datos'}</strong>
+        </div>
+        <div class="stat-card">
+          <span>Tus km volados</span>
+          <strong>${Math.round(myKm).toLocaleString('es-AR')}</strong>
+        </div>
+      </div>`;
+  }
 }
 
-// Inicializar autocompletes cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  setupAutocomplete('originInput', 'originList');
-  setupAutocomplete('destinationInput', 'destinationList');
-  setupAutocomplete('activityPlaceInput', 'activityPlaceList');
-});
+function rankingRow(index, username, value, isMe) {
+  const medals = ['🥇', '🥈', '🥉'];
+  const medal = index < 3 ? medals[index] : `#${index + 1}`;
+  return `
+    <div class="ranking-row ${isMe ? 'ranking-row-me' : ''}">
+      <span class="ranking-pos">${medal}</span>
+      <span class="ranking-name">${username}${isMe ? ' <span class="ranking-you">(vos)</span>' : ''}</span>
+      <span class="ranking-value">${value}</span>
+    </div>`;
+}
+
+// Cargar ranking cuando se navega a esa sección
+const _origShowSection = showSection;
+showSection = function(sectionId) {
+  _origShowSection(sectionId);
+  if (sectionId === 'rankingSection') loadRanking('all');
+};
