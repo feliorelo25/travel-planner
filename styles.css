@@ -1050,3 +1050,168 @@ select option { background: #0c1628; }
   .ranking-grid { grid-template-columns: 1fr; }
   .ranking-my-grid { grid-template-columns: repeat(2,1fr); }
 }
+
+/* Item action buttons */
+.item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+/* ============================================================
+   GANTT
+   ============================================================ */
+.gantt-wrap {
+  width: 100%;
+  overflow-x: auto;
+  min-width: 0;
+}
+.gantt-header {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 2;
+}
+.gantt-label-head {
+  min-width: 180px;
+  width: 180px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  padding-right: 12px;
+  flex-shrink: 0;
+}
+.gantt-days-head {
+  flex: 1;
+  display: flex;
+  gap: 0;
+}
+.gantt-day-label {
+  flex: 1;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  min-width: 48px;
+}
+.gantt-today-label {
+  color: var(--teal);
+  font-weight: 700;
+}
+.gantt-body { display: grid; gap: 6px; position: relative; }
+
+.gantt-today-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--teal);
+  opacity: 0.6;
+  z-index: 3;
+  pointer-events: none;
+}
+.gantt-today-line::before {
+  content: 'Hoy';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--teal);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.gantt-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 34px;
+}
+.gantt-label {
+  min-width: 180px;
+  width: 180px;
+  font-size: 12px;
+  color: var(--muted-hi);
+  padding-right: 12px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gantt-time {
+  font-size: 11px;
+  color: var(--teal);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.gantt-bar-track {
+  flex: 1;
+  height: 26px;
+  position: relative;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+}
+.gantt-bar {
+  position: absolute;
+  height: 100%;
+  border-radius: 8px;
+  min-width: 6px;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+.gantt-bar:hover { opacity: 1; }
+.gantt-bar-past {
+  opacity: 0.35 !important;
+  filter: grayscale(0.4);
+}
+
+.gantt-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+.gantt-legend span { display: flex; align-items: center; gap: 6px; }
+
+/* ============================================================
+   MAPA — leyenda y pins
+   ============================================================ */
+.map-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 0 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.map-legend span { display: flex; align-items: center; gap: 6px; }
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Leaflet popup dark style */
+.leaflet-popup-content-wrapper {
+  background: #0c1628 !important;
+  border: 1px solid rgba(45,212,191,0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important;
+  color: var(--text) !important;
+}
+.leaflet-popup-tip { background: #0c1628 !important; }
+.leaflet-popup-content { color: #e8f0fa !important; }
