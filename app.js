@@ -1,6 +1,10 @@
 const SUPABASE_URL = "https://katapwuimxbknrjzormr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_jnCfCZWv4hTuy6SpllJ8hg_UiC9K8AR";
 
+if (!window.supabase) {
+  throw new Error("Supabase no cargó. Revisá el script CDN en index.html");
+}
+
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 
