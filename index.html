@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voyanta | Planificador de viajes</title>
+  <meta name="description" content="Planificá viajes, gastos, itinerarios y una comunidad viajera en una sola app." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <section id="authView" class="auth-view hidden">
+      <div class="auth-panel glass">
+        <div class="auth-brand">
+          <span class="brand-badge"><i class="fa-solid fa-earth-americas"></i> Voyanta</span>
+          <h1>Diseñá viajes hermosos, ordenados y compartibles</h1>
+          <p>Organizá transportes, estadías, itinerarios, presupuesto, gastos y notas en un solo lugar.</p>
+          <div class="auth-highlights">
+            <div><i class="fa-solid fa-route"></i><span>Itinerarios inteligentes</span></div>
+            <div><i class="fa-solid fa-wallet"></i><span>Gastos y presupuesto</span></div>
+            <div><i class="fa-solid fa-users"></i><span>Comunidad viajera</span></div>
+          </div>
+        </div>
+        <div class="auth-card">
+          <div class="tabs compact" data-auth-switch>
+            <button class="tab active" data-auth-target="loginForm">Ingresar</button>
+            <button class="tab" data-auth-target="signupForm">Crear cuenta</button>
+          </div>
+
+          <form id="loginForm" class="form-stack">
+            <h2>Bienvenido de nuevo</h2>
+            <label>Email
+              <input type="email" name="email" placeholder="tu@email.com" required />
+            </label>
+            <label>Contraseña
+              <input type="password" name="password" placeholder="••••••••" required />
+            </label>
+            <button class="btn btn-primary" type="submit">Iniciar sesión</button>
+            <p class="muted small">Demo: entrá con el usuario precargado o creá uno nuevo.</p>
+          </form>
+
+          <form id="signupForm" class="form-stack hidden">
+            <h2>Crear cuenta</h2>
+            <label>Usuario
+              <input type="text" name="username" placeholder="felipeviajero" required />
+            </label>
+            <label>Email
+              <input type="email" name="email" placeholder="tu@email.com" required />
+            </label>
+            <label>Contraseña
+              <input type="password" name="password" placeholder="mínimo 6 caracteres" minlength="6" required />
+            </label>
+            <button class="btn btn-primary" type="submit">Crear cuenta</button>
+            <p class="muted small">Arquitectura preparada para integrar Supabase más adelante.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="mainView" class="main-layout hidden">
+      <aside class="sidebar glass">
+        <div>
+          <div class="brand-row">
+            <div class="brand-icon"><i class="fa-solid fa-compass"></i></div>
+            <div>
+              <h2>Voyanta</h2>
+              <p>Travel Planner</p>
+            </div>
+          </div>
+          <nav class="side-nav">
+            <button class="nav-item active" data-section="dashboardSection"><i class="fa-solid fa-house"></i> Dashboard</button>
+            <button class="nav-item" data-section="communitySection"><i class="fa-solid fa-comments"></i> Foro</button>
+            <button class="nav-item" data-section="profileSection"><i class="fa-solid fa-user"></i> Perfil</button>
+          </nav>
+        </div>
+        <div class="sidebar-footer">
+          <div class="user-mini">
+            <div class="avatar" id="avatarLetter">F</div>
+            <div>
+              <strong id="userNameDisplay">Felipe</strong>
+              <p id="userEmailDisplay">felipe@example.com</p>
+            </div>
+          </div>
+          <button id="logoutBtn" class="btn btn-secondary full"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</button>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="topbar glass">
+          <div>
+            <span class="eyebrow">Planificador premium</span>
+            <h1 id="pageTitle">Mis viajes</h1>
+          </div>
+          <div class="topbar-actions">
+            <div class="search-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="searchTrips" type="search" placeholder="Buscar viaje, destino o estado" />
+            </div>
+            <button id="createTripBtn" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nuevo viaje</button>
+          </div>
+        </header>
+
+        <section id="dashboardSection" class="page-section active">
+          <div class="hero-banner glass">
+            <div>
+              <span class="pill"><i class="fa-solid fa-sparkles"></i> Todo tu viaje en un mismo lugar</span>
+              <h2>Armá itinerarios, controlá gastos y visualizá todo con claridad.</h2>
+              <p>Creá múltiples viajes, gestioná reservas, usá varias monedas y dejá la base lista para colaboración futura.</p>
+            </div>
+            <div class="hero-stats">
+              <div class="stat-card">
+                <span>Total viajes</span>
+                <strong id="statTrips">0</strong>
+              </div>
+              <div class="stat-card">
+                <span>En curso</span>
+                <strong id="statInProgress">0</strong>
+              </div>
+              <div class="stat-card">
+                <span>Gasto acumulado</span>
+                <strong id="statTotalSpent">USD 0</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-head">
+            <div>
+              <h3>Tus viajes</h3>
+              <p class="muted">Cada tarjeta abre un panel completo con itinerario, gastos, mapa, notas y más.</p>
+            </div>
+          </div>
+
+          <div id="tripGrid" class="trip-grid"></div>
+          <div id="emptyTrips" class="empty-state hidden glass">
+            <i class="fa-solid fa-suitcase-rolling"></i>
+            <h3>Todavía no creaste viajes</h3>
+            <p>Empezá armando uno nuevo para ver el dashboard completo con datos y visuales.</p>
+          </div>
+
+          <section id="tripDetailSection" class="trip-detail hidden">
+            <div class="trip-cover glass">
+              <div class="trip-cover-image" id="tripCoverImage"></div>
+              <div class="trip-cover-content">
+                <div class="trip-cover-top">
+                  <span class="pill" id="tripStatusBadge">Planeado</span>
+                  <div class="trip-actions-inline">
+                    <button id="editTripBtn" class="btn btn-secondary"><i class="fa-solid fa-pen"></i> Editar</button>
+                    <button id="deleteTripBtn" class="btn btn-ghost danger"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                  </div>
+                </div>
+                <h2 id="tripTitle">Nombre del viaje</h2>
+                <p id="tripDescription">Descripción del viaje</p>
+                <div class="trip-meta-line">
+                  <span><i class="fa-solid fa-location-dot"></i> <span id="tripDestination"></span></span>
+                  <span><i class="fa-solid fa-calendar"></i> <span id="tripDates"></span></span>
+                  <span><i class="fa-solid fa-hourglass-half"></i> <span id="tripDays"></span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="trip-overview-grid">
+              <article class="overview-card glass">
+                <span>Próximo traslado</span>
+                <strong id="overviewTransport">Sin datos</strong>
+              </article>
+              <article class="overview-card glass">
+                <span>Próxima actividad</span>
+                <strong id="overviewActivity">Sin datos</strong>
+              </article>
+              <article class="overview-card glass">
+                <span>Total gastado</span>
+                <strong id="overviewSpent">-</strong>
+              </article>
+              <article class="overview-card glass">
+                <span>Presupuesto</span>
+                <strong id="overviewBudget">-</strong>
+              </article>
+            </div>
+
+            <div class="tabs trip-tabs" id="tripTabs">
+              <button class="tab active" data-tab="summaryPanel">Resumen</button>
+              <button class="tab" data-tab="transportPanel">Transporte</button>
+              <button class="tab" data-tab="stayPanel">Alojamiento</button>
+              <button class="tab" data-tab="itineraryPanel">Itinerario</button>
+              <button class="tab" data-tab="activitiesPanel">Excursiones</button>
+              <button class="tab" data-tab="expensesPanel">Gastos</button>
+              <button class="tab" data-tab="notesPanel">Notas</button>
+              <button class="tab" data-tab="mapPanel">Mapa</button>
+            </div>
+
+            <div id="summaryPanel" class="tab-panel active">
+              <div class="summary-grid">
+                <section class="glass panel-card">
+                  <div class="panel-head">
+                    <h3>Resumen del viaje</h3>
+                  </div>
+                  <div class="summary-list" id="summaryHighlights"></div>
+                </section>
+                <section class="glass panel-card">
+                  <div class="panel-head">
+                    <h3>Gasto por categoría</h3>
+                  </div>
+                  <canvas id="expenseCategoryChart"></canvas>
+                </section>
+                <section class="glass panel-card wide">
+                  <div class="panel-head">
+                    <h3>Evolución de gastos</h3>
+                  </div>
+                  <canvas id="expenseTimelineChart"></canvas>
+                </section>
+                <section class="glass panel-card">
+                  <div class="panel-head">
+                    <h3>Mapa del viaje</h3>
+                  </div>
+                  <div id="miniMap" class="map-box"></div>
+                </section>
+              </div>
+            </div>
+
+            <div id="transportPanel" class="tab-panel">
+              <div class="panel-card glass">
+                <div class="panel-head between">
+                  <h3>Tramos de transporte</h3>
+                  <button class="btn btn-primary" data-open-modal="transportModal"><i class="fa-solid fa-plus"></i> Agregar tramo</button>
+                </div>
+                <div id="transportList" class="stack-list"></div>
+              </div>
+            </div>
+
+            <div id="stayPanel" class="tab-panel">
+              <div class="panel-card glass">
+                <div class="panel-head between">
+                  <h3>Alojamientos</h3>
+                  <button class="btn btn-primary" data-open-modal="stayModal"><i class="fa-solid fa-plus"></i> Agregar estadía</button>
+                </div>
+                <div id="stayList" class="stack-list"></div>
+              </div>
+            </div>
+
+            <div id="itineraryPanel" class="tab-panel">
+              <div class="panel-card glass">
+                <div class="panel-head between">
+                  <div>
+                    <h3>Agenda diaria</h3>
+                    <p class="muted">Reordená actividades arrastrando y soltando.</p>
+                  </div>
+                  <button class="btn btn-primary" data-open-modal="itineraryModal"><i class="fa-solid fa-plus"></i> Nueva actividad</button>
+                </div>
+                <div id="itineraryDays" class="itinerary-days"></div>
+              </div>
+            </div>
+
+            <div id="activitiesPanel" class="tab-panel">
+              <div class="panel-card glass">
+                <div class="panel-head between">
+                  <h3>Excursiones y actividades</h3>
+                  <button class="btn btn-primary" data-open-modal="activityModal"><i class="fa-solid fa-plus"></i> Nueva excursión</button>
+                </div>
+                <div id="activityList" class="stack-list"></div>
+              </div>
+            </div>
+
+            <div id="expensesPanel" class="tab-panel">
+              <div class="expense-layout">
+                <section class="panel-card glass">
+                  <div class="panel-head between">
+                    <h3>Registro de gastos</h3>
+                    <button class="btn btn-primary" data-open-modal="expenseModal"><i class="fa-solid fa-plus"></i> Cargar gasto</button>
+                  </div>
+                  <div id="expenseList" class="stack-list"></div>
+                </section>
+                <aside class="panel-card glass">
+                  <div class="panel-head">
+                    <h3>Resumen financiero</h3>
+                  </div>
+                  <div id="expenseSummary" class="summary-list"></div>
+                </aside>
+              </div>
+            </div>
+
+            <div id="notesPanel" class="tab-panel">
+              <div class="notes-layout">
+                <section class="panel-card glass">
+                  <div class="panel-head between">
+                    <h3>Notas del viaje</h3>
+                    <button class="btn btn-primary" data-open-modal="noteModal"><i class="fa-solid fa-plus"></i> Nueva nota</button>
+                  </div>
+                  <div id="noteList" class="note-grid"></div>
+                </section>
+              </div>
+            </div>
+
+            <div id="mapPanel" class="tab-panel">
+              <div class="panel-card glass">
+                <div class="panel-head">
+                  <h3>Mapa visual</h3>
+                  <p class="muted">Base integrada con Leaflet, preparada para Mapbox o Google Maps a futuro.</p>
+                </div>
+                <div id="fullMap" class="map-box large"></div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section id="communitySection" class="page-section">
+          <div class="community-layout">
+            <section class="panel-card glass">
+              <div class="panel-head between">
+                <div>
+                  <h3>Foro de viajeros</h3>
+                  <p class="muted">Compartí consejos, dudas y recomendaciones.</p>
+                </div>
+                <button class="btn btn-primary" data-open-modal="postModal"><i class="fa-solid fa-pen-to-square"></i> Nueva publicación</button>
+              </div>
+              <div id="forumList" class="forum-list"></div>
+            </section>
+            <aside class="panel-card glass">
+              <div class="panel-head">
+                <h3>Ideas para seguir escalando</h3>
+              </div>
+              <ul class="feature-roadmap">
+                <li>Compartir viajes entre usuarios</li>
+                <li>Roles: propietario, colaborador, invitado</li>
+                <li>Comentarios dentro del viaje</li>
+                <li>Conversión automática de monedas</li>
+                <li>Sincronización real con backend</li>
+              </ul>
+            </aside>
+          </div>
+        </section>
+
+        <section id="profileSection" class="page-section">
+          <div class="profile-grid">
+            <section class="panel-card glass">
+              <div class="panel-head">
+                <h3>Mi perfil</h3>
+              </div>
+              <div class="profile-card-body">
+                <div class="avatar xl" id="profileAvatar">F</div>
+                <div>
+                  <h4 id="profileName">Felipe</h4>
+                  <p id="profileEmail">felipe@example.com</p>
+                  <p class="muted">Persistencia local lista para evolucionar a autenticación real con Supabase.</p>
+                </div>
+              </div>
+            </section>
+            <section class="panel-card glass">
+              <div class="panel-head">
+                <h3>Arquitectura pensada para futuro</h3>
+              </div>
+              <div class="summary-list">
+                <div class="summary-item"><span>Autenticación</span><strong>Preparada para Supabase Auth</strong></div>
+                <div class="summary-item"><span>Persistencia actual</span><strong>localStorage</strong></div>
+                <div class="summary-item"><span>Base de datos futura</span><strong>Usuarios, viajes, items, foro</strong></div>
+                <div class="summary-item"><span>Colaboración</span><strong>Roles y permisos por viaje</strong></div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <div id="modalBackdrop" class="modal-backdrop hidden"></div>
+
+  <div id="tripModal" class="modal hidden">
+    <div class="modal-card glass">
+      <div class="modal-head"><h3 id="tripModalTitle">Nuevo viaje</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="tripForm" class="form-grid">
+        <input type="hidden" name="tripId" />
+        <label>Nombre del viaje<input name="name" required /></label>
+        <label>Destino principal<input name="destination" required /></label>
+        <label>Fecha de inicio<input type="date" name="startDate" required /></label>
+        <label>Fecha de fin<input type="date" name="endDate" required /></label>
+        <label>Estado
+          <select name="status">
+            <option value="planeado">Planeado</option>
+            <option value="en curso">En curso</option>
+            <option value="finalizado">Finalizado</option>
+          </select>
+        </label>
+        <label>Moneda base
+          <select name="baseCurrency">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="ARS">ARS</option>
+            <option value="GBP">GBP</option>
+          </select>
+        </label>
+        <label class="full">Descripción breve<textarea name="description" rows="3"></textarea></label>
+        <label class="full">Imagen de portada (URL)<input name="coverImage" placeholder="https://..." /></label>
+        <label>Presupuesto estimado<input type="number" step="0.01" name="budget" placeholder="1500" /></label>
+        <button class="btn btn-primary full" type="submit">Guardar viaje</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="transportModal" class="modal hidden">
+    <div class="modal-card glass">
+      <div class="modal-head"><h3>Agregar transporte</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="transportForm" class="form-grid compact-grid">
+        <label>Tipo<select name="type"><option>vuelo</option><option>tren</option><option>barco</option><option>auto</option><option>bus</option><option>otros</option></select></label>
+        <label>Origen<input name="origin" required /></label>
+        <label>Destino<input name="destination" required /></label>
+        <label>Salida<input type="datetime-local" name="departure" required /></label>
+        <label>Llegada<input type="datetime-local" name="arrival" required /></label>
+        <label>Empresa<input name="company" /></label>
+        <label>Reserva / referencia<input name="reference" /></label>
+        <label>Costo<input type="number" step="0.01" name="cost" /></label>
+        <label>Moneda<input name="currency" placeholder="USD" /></label>
+        <label class="full">Observaciones<textarea name="notes"></textarea></label>
+        <button class="btn btn-primary full" type="submit">Guardar tramo</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="stayModal" class="modal hidden">
+    <div class="modal-card glass">
+      <div class="modal-head"><h3>Agregar alojamiento</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="stayForm" class="form-grid compact-grid">
+        <label>Tipo<select name="type"><option>hotel</option><option>Airbnb</option><option>hostel</option><option>departamento</option><option>otro</option></select></label>
+        <label>Nombre<input name="name" required /></label>
+        <label class="full">Dirección<input name="address" /></label>
+        <label>Check-in<input type="date" name="checkIn" /></label>
+        <label>Check-out<input type="date" name="checkOut" /></label>
+        <label>Noches<input type="number" name="nights" /></label>
+        <label>Costo<input type="number" step="0.01" name="cost" /></label>
+        <label>Moneda<input name="currency" placeholder="USD" /></label>
+        <label class="full">Link reserva<input name="bookingLink" placeholder="https://..." /></label>
+        <label class="full">Observaciones<textarea name="notes"></textarea></label>
+        <button class="btn btn-primary full" type="submit">Guardar estadía</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="itineraryModal" class="modal hidden">
+    <div class="modal-card glass">
+      <div class="modal-head"><h3>Nueva actividad diaria</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="itineraryForm" class="form-grid compact-grid">
+        <label>Día<input type="date" name="date" required /></label>
+        <label>Horario<input type="time" name="time" /></label>
+        <label>Lugar<input name="place" /></label>
+        <label>Actividad<input name="title" required /></label>
+        <label>Prioridad<select name="priority"><option>alta</option><option>media</option><option>baja</option></select></label>
+        <label>Estado<select name="status"><option>pendiente</option><option>reservado</option><option>realizado</option></select></label>
+        <label class="full">Descripción<textarea name="description"></textarea></label>
+        <button class="btn btn-primary full" type="submit">Guardar actividad</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="activityModal" class="modal hidden">
+    <div class="modal-card glass">
+      <div class="modal-head"><h3>Nueva excursión</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="activityForm" class="form-grid compact-grid">
+        <label>Nombre<input name="name" required /></label>
+        <label>Fecha<input type="date" name="date" /></label>
+        <label>Horario<input type="time" name="time" /></label>
+        <label>Lugar<input name="place" /></label>
+        <label>Proveedor<input name="provider" /></label>
+        <label>Costo<input type="number" step="0.01" name="cost" /></label>
+        <label>Moneda<input name="currency" placeholder="USD" /></label>
+        <label>Cantidad personas<input type="number" name="people" min="1" value="1" /></label>
+        <label>Estado reserva<select name="bookingStatus"><option>pendiente</option><option>reservado</option><option>confirmado</option></select></label>
+        <label class="full">Observaciones<textarea name="notes"></textarea></label>
+        <button class="btn btn-primary full" type="submit">Guardar excursión</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="expenseModal" class="modal hidden">
+    <div class="modal-card glass">
+      <div class="modal-head"><h3>Cargar gasto</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="expenseForm" class="form-grid compact-grid">
+        <label>Concepto<input name="concept" required /></label>
+        <label>Categoría<select name="category"><option>transporte</option><option>alojamiento</option><option>comida</option><option>excursiones</option><option>compras</option><option>otros</option></select></label>
+        <label>Importe<input type="number" step="0.01" name="amount" required /></label>
+        <label>Moneda<input name="currency" placeholder="USD" required /></label>
+        <label>Fecha<input type="date" name="date" /></label>
+        <label>Método de pago<input name="paymentMethod" placeholder="Tarjeta, efectivo..." /></label>
+        <label class="full">Notas<textarea name="notes"></textarea></label>
+        <button class="btn btn-primary full" type="submit">Guardar gasto</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="noteModal" class="modal hidden">
+    <div class="modal-card glass">
+      <div class="modal-head"><h3>Nueva nota</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="noteForm" class="form-grid compact-grid">
+        <label>Título<input name="title" required /></label>
+        <label>Tipo<select name="type"><option>recordatorio</option><option>idea</option><option>link</option><option>equipaje</option><option>pendiente</option></select></label>
+        <label class="full">Contenido<textarea name="content" rows="5" required></textarea></label>
+        <button class="btn btn-primary full" type="submit">Guardar nota</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="postModal" class="modal hidden">
+    <div class="modal-card glass">
+      <div class="modal-head"><h3>Nueva publicación</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="postForm" class="form-grid compact-grid">
+        <label>Título<input name="title" required /></label>
+        <label>Categoría<select name="category"><option>Consejos</option><option>Recomendaciones</option><option>Preguntas</option><option>Inspiración</option></select></label>
+        <label class="full">Contenido<textarea name="content" rows="5" required></textarea></label>
+        <button class="btn btn-primary full" type="submit">Publicar</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
