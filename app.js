@@ -616,21 +616,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (btn) openModal("postModal");
   });
 
-  // TABS AUTH (login / signup)
-  const authTabs = $$(".auth-card .tab");
-  authTabs.forEach((tab, i) => {
-    tab.addEventListener("click", () => {
-      authTabs.forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-      if (i === 0) {
-        $("#loginForm").style.display = "block";
-        $("#signupForm").style.display = "none";
-      } else {
-        $("#loginForm").style.display = "none";
-        $("#signupForm").style.display = "block";
-      }
-    });
-  });
+  // TABS AUTH — manejado con onclick inline en index.html
 
   // EDITAR / ELIMINAR trip desde detalle
   $("#editTripBtn") && $("#editTripBtn").addEventListener("click", () => {

@@ -33,8 +33,14 @@
 
         <div class="auth-card">
           <div class="tabs compact">
-            <button type="button" class="tab active">Ingresar</button>
-            <button type="button" class="tab">Crear cuenta</button>
+            <button type="button" class="tab active"
+              onclick="this.classList.add('active'); this.nextElementSibling.classList.remove('active'); document.getElementById('loginForm').style.display='grid'; document.getElementById('signupForm').style.display='none';">
+              Ingresar
+            </button>
+            <button type="button" class="tab"
+              onclick="this.classList.add('active'); this.previousElementSibling.classList.remove('active'); document.getElementById('loginForm').style.display='none'; document.getElementById('signupForm').style.display='grid';">
+              Crear cuenta
+            </button>
           </div>
 
           <!-- LOGIN -->
