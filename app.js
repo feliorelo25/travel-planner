@@ -250,7 +250,8 @@ async function editTransport(id) {
   const form = document.querySelector("#transportForm");
   fillForm(form, { type: data.type, origin: data.origin, destination: data.destination,
     departure: data.departure, arrival: data.arrival, company: data.company,
-    reference: data.reference, cost: data.cost, currency: data.currency, notes: data.notes, stops: data.stops });
+    reference: data.reference, cost: data.cost, currency: data.currency,
+    notes: data.notes, round_trip: data.round_trip || 0 });
   form.dataset.editId = id;
   openModal("transportModal");
 }
@@ -347,6 +348,9 @@ function renderTransports(items) {
         ${i.arrival ? `<span><i class="fa-solid fa-plane-arrival"></i> ${fmtDate(i.arrival)}</span>` : ""}
         ${i.company ? `<span><i class="fa-solid fa-building"></i> ${i.company}</span>` : ""}
         ${i.reference ? `<span><i class="fa-solid fa-barcode"></i> ${i.reference}</span>` : ""}
+        <span class="badge" style="background:rgba(96,165,250,0.1);color:#60a5fa;border-color:rgba(96,165,250,0.2);">
+          ${parseInt(i.round_trip) === 1 ? '✈↩ Ida y vuelta' : '✈ Solo ida'}
+        </span>
         ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${parseFloat(i.cost).toFixed(2)}</span>` : ""}
       </div>
       ${i.notes ? `<p class="item-notes">${i.notes}</p>` : ""}
@@ -1333,7 +1337,7 @@ async function loadRanking(period) {
 
   // Traer vuelos
   let flightsQuery = supabase.from('trip_transports')
-    .select('trip_id, origin, destination').eq('type', 'vuelo');
+    .select('trip_id, origin, destination, round_trip').eq('type', 'vuelo');
   if (period === 'year') {
     const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
     flightsQuery = flightsQuery.gte('created_at', yearStart);
@@ -1352,7 +1356,9 @@ async function loadRanking(period) {
     const userId = tripUserMap[f.trip_id];
     if (!userId) return;
     if (!byUser[userId]) byUser[userId] = { flights: [], username: profileMap[userId] || 'Viajero' };
+    // Si es ida y vuelta, agregar dos veces
     byUser[userId].flights.push(f);
+    if (parseInt(f.round_trip) === 1) byUser[userId].flights.push({...f, _isReturn: true});
   });
 
   // ---- RANKING POR VUELOS ----
