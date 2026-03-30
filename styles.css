@@ -1261,3 +1261,41 @@ select option { background: #0c1628; }
 
 /* Timeline item flex fix for actions */
 .timeline-item { display: grid; grid-template-columns: 70px 1fr auto; gap: 14px; align-items: start; }
+
+/* ============================================================
+   TRANSPORT MODAL — escalas y vuelta
+   ============================================================ */
+.transport-leg-header {
+  padding: 10px 0 4px;
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+}
+.stop-block {
+  background: rgba(201,168,76,0.06);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.stop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.stops-list { display: grid; gap: 6px; margin-top: 8px; }
+.stop-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--muted-hi);
+  padding: 6px 10px;
+  background: rgba(201,168,76,0.06);
+  border-radius: 10px;
+}
+.return-leg {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(96,165,250,0.06);
+  border: 1px solid rgba(96,165,250,0.15);
+  border-radius: 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
