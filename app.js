@@ -336,17 +336,31 @@ function renderTransports(items) {
   el.innerHTML = items.map(i => `
     <div class="item-card">
       <div class="item-card-top">
-        <div><h4>${i.origin} → ${i.destination}</h4></div>
-        <span class="badge">${i.type}</span>
+        <div><h4>${i.origin || '?'} → ${i.destination || '?'}</h4></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge">${i.type}</span>
+          ${itemActions("trip_transports", i.id, "editTransport")}
+        </div>
       </div>
       <div class="item-meta">
-        <span><i class="fa-solid fa-calendar"></i> ${fmtDate(i.departure)}</span>
+        ${i.departure ? `<span><i class="fa-solid fa-plane-departure"></i> ${fmtDate(i.departure)}</span>` : ""}
+        ${i.arrival ? `<span><i class="fa-solid fa-plane-arrival"></i> ${fmtDate(i.arrival)}</span>` : ""}
         ${i.company ? `<span><i class="fa-solid fa-building"></i> ${i.company}</span>` : ""}
+        ${i.reference ? `<span><i class="fa-solid fa-barcode"></i> ${i.reference}</span>` : ""}
         ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${parseFloat(i.cost).toFixed(2)}</span>` : ""}
       </div>
       ${i.notes ? `<p class="item-notes">${i.notes}</p>` : ""}
     </div>
   `).join("") + subtotalBar(state.costs.transports, "Subtotal transporte");
+}
+
+function mapsLink(address) {
+  if (!address) return '';
+  const enc = encodeURIComponent(address);
+  return `<div class="map-links">
+    <a href="https://www.google.com/maps/search/?api=1&query=${enc}" target="_blank" class="map-link"><i class="fa-solid fa-map-location-dot"></i> Google Maps</a>
+    <a href="https://waze.com/ul?q=${enc}" target="_blank" class="map-link"><i class="fa-solid fa-diamond-turn-right"></i> Waze</a>
+  </div>`;
 }
 
 function renderStays(items) {
@@ -356,14 +370,20 @@ function renderStays(items) {
   el.innerHTML = items.map(i => `
     <div class="item-card">
       <div class="item-card-top">
-        <div><h4>${i.name}</h4><p class="muted">${i.address || ""}</p></div>
-        <span class="badge">${i.type}</span>
+        <div><h4>${i.name}</h4>${i.address ? `<p class="muted" style="margin:2px 0 0;font-size:13px;">${i.address}</p>` : ""}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge">${i.type}</span>
+          ${itemActions("trip_stays", i.id, "editStay")}
+        </div>
       </div>
       <div class="item-meta">
         ${i.check_in ? `<span><i class="fa-solid fa-right-to-bracket"></i> ${fmtDate(i.check_in)}</span>` : ""}
         ${i.check_out ? `<span><i class="fa-solid fa-right-from-bracket"></i> ${fmtDate(i.check_out)}</span>` : ""}
+        ${i.nights ? `<span><i class="fa-solid fa-moon"></i> ${i.nights} noches</span>` : ""}
         ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${parseFloat(i.cost).toFixed(2)}</span>` : ""}
       </div>
+      ${i.address ? mapsLink(i.address) : ""}
+      ${i.booking_link ? `<a href="${i.booking_link}" target="_blank" class="map-link" style="margin-top:6px;"><i class="fa-solid fa-link"></i> Ver reserva</a>` : ""}
     </div>
   `).join("") + subtotalBar(state.costs.stays, "Subtotal alojamiento");
 }
@@ -377,22 +397,33 @@ function renderItinerary(items) {
     if (!byDay[day]) byDay[day] = [];
     byDay[day].push(i);
   });
-  el.innerHTML = Object.entries(byDay).map(([day, acts]) => `
-    <div class="day-block">
-      <div class="day-header"><strong>${fmtDate(day)}</strong></div>
+  const today = new Date(); today.setHours(0,0,0,0);
+  el.innerHTML = Object.entries(byDay).sort(([a],[b])=>a.localeCompare(b)).map(([day, acts]) => {
+    const dayDate = new Date(day);
+    const isPast = day !== "Sin fecha" && dayDate < today;
+    const isToday = day !== "Sin fecha" && dayDate.toDateString() === today.toDateString();
+    return `
+    <div class="day-block ${isPast?'day-past':''} ${isToday?'day-today':''}">
+      <div class="day-header">
+        <strong>${fmtDate(day)}</strong>
+        ${isToday ? '<span class="badge" style="background:rgba(45,212,191,0.2);color:var(--teal)">Hoy</span>' : ''}
+        ${isPast ? '<span class="badge" style="color:var(--muted)">Pasado</span>' : ''}
+      </div>
       <div class="day-timeline">
         ${acts.map(a => `
-          <div class="timeline-item">
+          <div class="timeline-item ${isPast?'timeline-past':''}">
             <span class="timeline-time">${a.time || "--:--"}</span>
-            <div class="timeline-content">
+            <div class="timeline-content" style="flex:1;">
               <h4>${a.title}</h4>
               <p>${a.place || ""} ${a.description || ""}</p>
+              ${a.place ? mapsLink(a.place) : ""}
             </div>
+            ${itemActions("trip_itinerary", a.id, "editItinerary")}
           </div>
         `).join("")}
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
 }
 
 // ============================================================
@@ -518,19 +549,28 @@ function renderActivities(items) {
   const el = $("#activityList");
   if (!items.length) { el.innerHTML = emptyMsg("No hay excursiones aún."); return; }
   state.costs.activities = sumCosts(items);
-  el.innerHTML = items.map(i => `
-    <div class="item-card">
+  const today = new Date(); today.setHours(0,0,0,0);
+  el.innerHTML = items.map(i => {
+    const isPast = i.date && new Date(i.date) < today;
+    return `
+    <div class="item-card ${isPast?'item-past':''}">
       <div class="item-card-top">
         <h4>${i.name}</h4>
-        <span class="badge">${i.booking_status || "pendiente"}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge">${i.booking_status || "pendiente"}</span>
+          ${itemActions("trip_activities", i.id, "editActivity")}
+        </div>
       </div>
       <div class="item-meta">
         ${i.date ? `<span><i class="fa-solid fa-calendar"></i> ${fmtDate(i.date)}</span>` : ""}
+        ${i.time ? `<span><i class="fa-solid fa-clock"></i> ${i.time}</span>` : ""}
         ${i.place ? `<span><i class="fa-solid fa-location-dot"></i> ${i.place}</span>` : ""}
         ${i.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${i.currency} ${parseFloat(i.cost).toFixed(2)}</span>` : ""}
+        ${isPast ? '<span style="color:var(--muted);font-size:12px;">Pasado</span>' : ''}
       </div>
-    </div>
-  `).join("") + subtotalBar(state.costs.activities, "Subtotal excursiones");
+      ${i.place ? mapsLink(i.place) : ""}
+    </div>`;
+  }).join("") + subtotalBar(state.costs.activities, "Subtotal excursiones");
 }
 
 function renderExpenses(items) {
@@ -543,12 +583,16 @@ function renderExpenses(items) {
   el.innerHTML = items.map(i => `
     <div class="item-card">
       <div class="item-card-top">
-        <h4>${i.concept}</h4>
-        <strong>${i.currency} ${parseFloat(i.amount).toFixed(2)}</strong>
+        <div><h4>${i.concept}</h4></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <strong>${i.currency} ${parseFloat(i.amount).toFixed(2)}</strong>
+          ${itemActions("trip_expenses", i.id, "editExpense")}
+        </div>
       </div>
       <div class="item-meta">
         <span class="badge">${i.category}</span>
         ${i.date ? `<span><i class="fa-solid fa-calendar"></i> ${fmtDate(i.date)}</span>` : ""}
+        ${i.payment_method ? `<span><i class="fa-solid fa-credit-card"></i> ${i.payment_method}</span>` : ""}
       </div>
     </div>
   `).join("") + subtotalBar(state.costs.expenses, "Subtotal gastos extras");
@@ -563,7 +607,10 @@ function renderNotes(items) {
   if (!items.length) { el.innerHTML = emptyMsg("Sin notas."); return; }
   el.innerHTML = items.map(i => `
     <div class="note-card">
-      <h4>${i.title}</h4>
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
+        <h4>${i.title}</h4>
+        ${itemActions("trip_notes", i.id, "editNote")}
+      </div>
       <span class="badge">${i.type}</span>
       <p>${i.content}</p>
     </div>

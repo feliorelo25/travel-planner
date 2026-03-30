@@ -1215,3 +1215,49 @@ select option { background: #0c1628; }
 }
 .leaflet-popup-tip { background: #0c1628 !important; }
 .leaflet-popup-content { color: #e8f0fa !important; }
+
+/* Item actions inline */
+.item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.item-actions .btn {
+  padding: 5px 9px !important;
+  font-size: 12px !important;
+  border-radius: 10px !important;
+  min-width: 32px;
+  height: 32px;
+}
+
+/* Map links */
+.map-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(45,212,191,0.08);
+  border: 1px solid rgba(45,212,191,0.2);
+  color: var(--teal);
+  text-decoration: none;
+  transition: background 0.2s, transform 0.15s;
+}
+.map-link:hover { background: rgba(45,212,191,0.16); transform: translateY(-1px); }
+
+/* Itinerary past/today */
+.day-past { opacity: 0.6; }
+.day-today { border-color: rgba(45,212,191,0.35) !important; background: rgba(45,212,191,0.03) !important; }
+.timeline-past .timeline-time { color: var(--muted); }
+.item-past { opacity: 0.55; }
+
+/* Timeline item flex fix for actions */
+.timeline-item { display: grid; grid-template-columns: 70px 1fr auto; gap: 14px; align-items: start; }
