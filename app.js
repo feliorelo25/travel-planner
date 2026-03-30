@@ -243,31 +243,157 @@ function itemActions(table, id, editFn) {
   </div>`;
 }
 
+// ============================================================
+// TRANSPORTE — ida y vuelta + escalas dinámicas
+// ============================================================
+let stopCount = 0;
+
+function toggleReturnLeg(val) {
+  const ids = ['returnLegHeader','retOriginLabel','retDestLabel','retDepLabel','retArrLabel'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', val !== '1');
+  });
+  if (val === '1') {
+    setTimeout(() => {
+      // Pre-fill vuelta con el inverso de ida
+      const orig = document.getElementById('originInput');
+      const dest = document.getElementById('destInput');
+      const retOrig = document.getElementById('retOriginInput');
+      const retDest = document.getElementById('retDestInput');
+      if (dest && retOrig && !retOrig.value) retOrig.value = dest.value;
+      if (orig && retDest && !retDest.value) retDest.value = orig.value;
+      // Inicializar autocomplete en los inputs de vuelta
+      setupAutocomplete('retOriginInput', 'retOriginList');
+      setupAutocomplete('retDestInput', 'retDestList');
+      initFlatpickr();
+    }, 60);
+  }
+}
+
+function addStop() {
+  stopCount++;
+  const idx = stopCount;
+  const container = document.getElementById('stopsContainer');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'stop-block';
+  div.id = `stop_${idx}`;
+  div.innerHTML = `
+    <div class="stop-header">
+      <span class="eyebrow" style="color:var(--gold)"><i class="fa-solid fa-rotate"></i> Escala ${idx}</span>
+      <button type="button" class="btn btn-ghost danger" style="padding:4px 8px;font-size:12px;" onclick="removeStop(${idx})">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="form-grid compact-grid" style="margin-top:8px;">
+      <label>Ciudad de escala
+        <div class="autocomplete-wrap">
+          <input name="stop_${idx}_city" id="stopCity_${idx}" autocomplete="off" placeholder="Ej: São Paulo" />
+          <ul class="autocomplete-list hidden" id="stopCityList_${idx}"></ul>
+        </div>
+      </label>
+      <label>Aeropuerto / Terminal<input name="stop_${idx}_terminal" placeholder="Ej: GRU - Guarulhos" /></label>
+      <label>Llegada escala<input type="text" class="fpdatetime" name="stop_${idx}_arrival" placeholder="Fecha y hora" /></label>
+      <label>Salida escala<input type="text" class="fpdatetime" name="stop_${idx}_departure" placeholder="Fecha y hora" /></label>
+    </div>`;
+  container.appendChild(div);
+  setupAutocomplete(`stopCity_${idx}`, `stopCityList_${idx}`);
+  initFlatpickr();
+}
+
+function removeStop(idx) {
+  const el = document.getElementById(`stop_${idx}`);
+  if (el) el.remove();
+}
+
+function renderStops(stopsJson) {
+  try {
+    const stops = JSON.parse(stopsJson);
+    if (!stops.length) return '';
+    return `<div class="stops-list">${stops.map((s, i) => `
+      <div class="stop-item">
+        <i class="fa-solid fa-rotate" style="color:var(--gold);"></i>
+        <span>Escala ${i+1}: <strong>${s.city}</strong>${s.terminal ? ` (${s.terminal})` : ''}${s.arrival ? ` · Llega ${fmtDate(s.arrival)}` : ''}${s.departure ? ` · Sale ${fmtDate(s.departure)}` : ''}</span>
+      </div>`).join('')}</div>`;
+  } catch(e) { return ''; }
+}
+
+async function saveTransportForm(form) {
+  const d = Object.fromEntries(new FormData(form).entries());
+  // Collect stops
+  const stops = [];
+  let si = 1;
+  while (d[`stop_${si}_city`] !== undefined) {
+    if (d[`stop_${si}_city`]) stops.push({
+      city: d[`stop_${si}_city`],
+      terminal: d[`stop_${si}_terminal`] || '',
+      arrival: d[`stop_${si}_arrival`] || '',
+      departure: d[`stop_${si}_departure`] || ''
+    });
+    si++;
+  }
+  const isRoundTrip = parseInt(d.round_trip) === 1;
+  const payload = {
+    trip_id: state.selectedTripId,
+    type: d.type, round_trip: d.round_trip || 0,
+    origin: d.origin, destination: d.destination,
+    departure: d.departure || null, arrival: d.arrival || null,
+    company: d.company || null, reference: d.reference || null,
+    cost: d.cost ? parseFloat(d.cost) : null,
+    currency: d.currency || 'USD', notes: d.notes || null,
+    stops_count: stops.length,
+    stops_data: stops.length ? JSON.stringify(stops) : null,
+    return_origin: isRoundTrip ? (d.return_origin || d.destination || null) : null,
+    return_destination: isRoundTrip ? (d.return_destination || d.origin || null) : null,
+    return_departure: isRoundTrip ? (d.return_departure || null) : null,
+    return_arrival: isRoundTrip ? (d.return_arrival || null) : null
+  };
+  const editId = form.dataset.editId;
+  let error;
+  if (editId) {
+    const { trip_id, ...upd } = payload;
+    ({ error } = await supabase.from('trip_transports').update(upd).eq('id', editId));
+    delete form.dataset.editId;
+  } else {
+    ({ error } = await supabase.from('trip_transports').insert(payload));
+  }
+  if (error) return alert(error.message);
+  stopCount = 0;
+  const cont = document.getElementById('stopsContainer');
+  if (cont) cont.innerHTML = '';
+  const sel = document.getElementById('roundTripSelect');
+  if (sel) { sel.value = '0'; toggleReturnLeg('0'); }
+  closeAllModals(); form.reset(); loadTripItems(state.selectedTripId);
+}
+
 // Edit modals — cargar datos en el form y abrir modal
 async function editTransport(id) {
   const { data } = await supabase.from("trip_transports").select("*").eq("id", id).single();
   if (!data) return;
   const form = document.querySelector("#transportForm");
-  fillForm(form, { type: data.type, origin: data.origin, destination: data.destination,
+  fillForm(form, {
+    type: data.type, origin: data.origin, destination: data.destination,
     departure: data.departure, arrival: data.arrival, company: data.company,
     reference: data.reference, cost: data.cost, currency: data.currency,
     notes: data.notes, round_trip: data.round_trip || 0,
-    return_origin: data.return_origin || '', return_destination: data.return_destination || '',
-    return_departure: data.return_departure || '', return_arrival: data.return_arrival || '' });
-  // Show/hide return leg
-  const sel = document.getElementById('roundTripSelect');
-  if (sel) { sel.value = data.round_trip || 0; toggleReturnLeg(String(data.round_trip || 0)); }
-  // Restore stops
-  stopCount = 0;
-  document.getElementById('stopsContainer').innerHTML = '';
-  if (data.stops_data) {
-    try {
-      const stops = JSON.parse(data.stops_data);
-      stops.forEach(() => addStop());
-    } catch(e) {}
-  }
+    return_origin: data.return_origin || '',
+    return_destination: data.return_destination || '',
+    return_departure: data.return_departure || '',
+    return_arrival: data.return_arrival || ''
+  });
   form.dataset.editId = id;
   openModal("transportModal");
+  setTimeout(() => {
+    const sel = document.getElementById('roundTripSelect');
+    if (sel) { sel.value = data.round_trip || 0; toggleReturnLeg(String(data.round_trip || 0)); }
+    stopCount = 0;
+    const cont = document.getElementById('stopsContainer');
+    if (cont) cont.innerHTML = '';
+    if (data.stops_data) {
+      try { JSON.parse(data.stops_data).forEach(() => addStop()); } catch(e) {}
+    }
+  }, 80);
 }
 
 async function editStay(id) {
@@ -344,18 +470,6 @@ async function saveTripItem(table, form, extraFields) {
   closeAllModals(); form.reset(); loadTripItems(state.selectedTripId);
 }
 
-function renderStops(stopsJson) {
-  try {
-    const stops = JSON.parse(stopsJson);
-    if (!stops.length) return '';
-    return `<div class="stops-list">${stops.map((s, i) => `
-      <div class="stop-item">
-        <i class="fa-solid fa-rotate" style="color:var(--gold);"></i>
-        <span>Escala ${i+1}: <strong>${s.city}</strong>${s.terminal ? ` (${s.terminal})` : ''}${s.arrival ? ` · Llega ${fmtDate(s.arrival)}` : ''}${s.departure ? ` · Sale ${fmtDate(s.departure)}` : ''}</span>
-      </div>`).join('')}</div>`;
-  } catch(e) { return ''; }
-}
-
 function renderTransports(items) {
   const el = $("#transportList");
   if (!items.length) { el.innerHTML = emptyMsg("No hay tramos de transporte aún."); return; }
@@ -384,7 +498,7 @@ function renderTransports(items) {
       ${parseInt(i.round_trip) === 1 && i.return_origin ? `
         <div class="return-leg">
           <span class="eyebrow" style="color:var(--gold);font-size:10px;"><i class="fa-solid fa-plane-arrival"></i> Vuelta: ${i.return_origin} → ${i.return_destination || ''}</span>
-          ${i.return_departure ? `<span class="item-notes">${fmtDate(i.return_departure)}</span>` : ""}
+          ${i.return_departure ? `<p class="item-notes" style="margin:2px 0 0;">${fmtDate(i.return_departure)}</p>` : ""}
         </div>` : ""}
     </div>
   `).join("") + subtotalBar(state.costs.transports, "Subtotal transporte");
@@ -1084,14 +1198,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // FORMS TRIP ITEMS
-  // Transport form has special handler
-  const transportFormEl = document.querySelector("#transportForm");
-  if (transportFormEl) {
-    transportFormEl.addEventListener("submit", e => {
-      e.preventDefault();
-      saveTransportForm(e.target);
-    });
-  }
+  // Transport has special handler for stops + return leg
+  const tForm = document.querySelector("#transportForm");
+  if (tForm) tForm.addEventListener("submit", e => { e.preventDefault(); saveTransportForm(e.target); });
 
   const tripItemForms = {
     stayForm: "trip_stays",
@@ -1162,139 +1271,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 });
 
-
-// ============================================================
-// TRANSPORTE — ida y vuelta + escalas dinámicas
-// ============================================================
-
-let stopCount = 0;
-
-function toggleReturnLeg(val) {
-  const ids = ['returnLegHeader','retOriginLabel','retDestLabel','retDepLabel','retArrLabel'];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('hidden', val !== '1');
-  });
-  if (val === '1') {
-    // Pre-fill return origin with current destination
-    setTimeout(() => {
-      const dest = document.getElementById('destInput');
-      const retOrig = document.getElementById('retOriginInput');
-      if (dest && retOrig && !retOrig.value) retOrig.value = dest.value;
-      // Pre-fill return destination with origin
-      const orig = document.getElementById('originInput');
-      const retDest = document.getElementById('retDestInput');
-      if (orig && retDest && !retDest.value) retDest.value = orig.value;
-      initAutocompletes();
-      initFlatpickr();
-    }, 50);
-  }
-}
-
-function addStop() {
-  stopCount++;
-  const idx = stopCount;
-  const container = document.getElementById('stopsContainer');
-  if (!container) return;
-
-  const div = document.createElement('div');
-  div.className = 'stop-block';
-  div.id = `stop_${idx}`;
-  div.innerHTML = `
-    <div class="stop-header">
-      <span class="eyebrow" style="color:var(--gold)"><i class="fa-solid fa-rotate"></i> Escala ${idx}</span>
-      <button type="button" class="btn btn-ghost danger" style="padding:4px 8px;font-size:12px;" onclick="removeStop(${idx})">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-    <div class="form-grid compact-grid" style="margin-top:8px;">
-      <label>Ciudad de escala
-        <div class="autocomplete-wrap">
-          <input name="stop_${idx}_city" id="stopCity_${idx}" autocomplete="off" placeholder="Ej: São Paulo" />
-          <ul class="autocomplete-list hidden" id="stopCityList_${idx}"></ul>
-        </div>
-      </label>
-      <label>Aeropuerto / Terminal<input name="stop_${idx}_terminal" placeholder="Ej: GRU - Guarulhos" /></label>
-      <label>Llegada escala<input type="text" class="fpdatetime" name="stop_${idx}_arrival" placeholder="Fecha y hora" /></label>
-      <label>Salida escala<input type="text" class="fpdatetime" name="stop_${idx}_departure" placeholder="Fecha y hora" /></label>
-    </div>`;
-
-  container.appendChild(div);
-  setupAutocomplete(`stopCity_${idx}`, `stopCityList_${idx}`);
-  initFlatpickr();
-}
-
-function removeStop(idx) {
-  const el = document.getElementById(`stop_${idx}`);
-  if (el) el.remove();
-}
-
-// Override saveTripItem for transport to handle stops JSON + return leg
-const _origSaveTripItem = saveTripItem;
-
-async function saveTransportForm(form) {
-  const d = Object.fromEntries(new FormData(form).entries());
-
-  // Collect stops
-  const stops = [];
-  let i = 1;
-  while (d[`stop_${i}_city`] !== undefined) {
-    if (d[`stop_${i}_city`]) {
-      stops.push({
-        city: d[`stop_${i}_city`],
-        terminal: d[`stop_${i}_terminal`] || '',
-        arrival: d[`stop_${i}_arrival`] || '',
-        departure: d[`stop_${i}_departure`] || ''
-      });
-    }
-    i++;
-  }
-
-  const isRoundTrip = parseInt(d.round_trip) === 1;
-
-  // Build main leg payload
-  const payload = {
-    trip_id: state.selectedTripId,
-    type: d.type,
-    round_trip: d.round_trip || 0,
-    origin: d.origin,
-    destination: d.destination,
-    departure: d.departure || null,
-    arrival: d.arrival || null,
-    company: d.company || null,
-    reference: d.reference || null,
-    cost: d.cost ? parseFloat(d.cost) : null,
-    currency: d.currency || 'USD',
-    notes: d.notes || null,
-    stops_count: stops.length,
-    stops_data: stops.length ? JSON.stringify(stops) : null,
-    return_origin: isRoundTrip ? (d.return_origin || d.destination) : null,
-    return_destination: isRoundTrip ? (d.return_destination || d.origin) : null,
-    return_departure: isRoundTrip ? (d.return_departure || null) : null,
-    return_arrival: isRoundTrip ? (d.return_arrival || null) : null
-  };
-
-  const editId = form.dataset.editId;
-  let error;
-  if (editId) {
-    const { trip_id, ...updatePayload } = payload;
-    ({ error } = await supabase.from('trip_transports').update(updatePayload).eq('id', editId));
-    delete form.dataset.editId;
-  } else {
-    ({ error } = await supabase.from('trip_transports').insert(payload));
-  }
-
-  if (error) return alert(error.message);
-
-  // Reset UI
-  stopCount = 0;
-  document.getElementById('stopsContainer').innerHTML = '';
-  const sel = document.getElementById('roundTripSelect');
-  if (sel) { sel.value = '0'; toggleReturnLeg('0'); }
-  closeAllModals();
-  form.reset();
-  loadTripItems(state.selectedTripId);
-}
 
 // ============================================================
 // FLATPICKR — calendarios en todos los modales
