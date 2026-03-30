@@ -881,6 +881,10 @@ async function updateMaps(tripId) {
 function openModal(id) {
   $("#modalBackdrop").classList.remove("hidden");
   $(`#${id}`).classList.remove("hidden");
+  setTimeout(() => {
+    initFlatpickr();
+    initAutocompletes();
+  }, 60);
 }
 
 function closeAllModals() {
@@ -1067,6 +1071,156 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
 });
+
+
+// ============================================================
+// FLATPICKR — calendarios en todos los modales
+// ============================================================
+function initFlatpickr() {
+  // Fechas solas
+  document.querySelectorAll('.fpdate:not([data-fp])').forEach(el => {
+    el.setAttribute('data-fp', '1');
+    flatpickr(el, {
+      dateFormat: 'Y-m-d',
+      locale: 'es',
+      allowInput: true,
+      disableMobile: false
+    });
+  });
+  // Fecha + hora
+  document.querySelectorAll('.fpdatetime:not([data-fp])').forEach(el => {
+    el.setAttribute('data-fp', '1');
+    flatpickr(el, {
+      enableTime: true,
+      dateFormat: 'Y-m-d H:i',
+      time_24hr: true,
+      locale: 'es',
+      allowInput: true
+    });
+  });
+  // Solo hora
+  document.querySelectorAll('.fptime:not([data-fp])').forEach(el => {
+    el.setAttribute('data-fp', '1');
+    flatpickr(el, {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: 'H:i',
+      time_24hr: true,
+      locale: 'es',
+      allowInput: true
+    });
+  });
+
+  // Validación: fecha fin no puede ser antes de inicio (modal viaje)
+  const tripStart = document.querySelector('#tripStart');
+  const tripEnd   = document.querySelector('#tripEnd');
+  const tripErr   = document.querySelector('#tripDateError');
+  if (tripStart && tripEnd) {
+    const checkTrip = () => {
+      if (tripStart.value && tripEnd.value && tripEnd.value < tripStart.value) {
+        if (tripErr) { tripErr.textContent = '⚠️ La fecha de fin no puede ser anterior a la de inicio.'; tripErr.classList.remove('hidden'); }
+        tripEnd.value = '';
+        if (tripEnd._flatpickr) tripEnd._flatpickr.clear();
+      } else {
+        if (tripErr) tripErr.classList.add('hidden');
+      }
+    };
+    tripStart.addEventListener('change', checkTrip);
+    tripEnd.addEventListener('change', checkTrip);
+  }
+
+  // Validación check-in/check-out + noches automáticas
+  const stayIn  = document.querySelector('#stayIn');
+  const stayOut = document.querySelector('#stayOut');
+  const stayN   = document.querySelector('#stayNights');
+  const stayErr = document.querySelector('#stayDateError');
+  if (stayIn && stayOut) {
+    const checkStay = () => {
+      if (stayIn.value && stayOut.value) {
+        const diff = Math.round((new Date(stayOut.value) - new Date(stayIn.value)) / 86400000);
+        if (diff < 0) {
+          if (stayErr) { stayErr.textContent = '⚠️ El check-out no puede ser antes del check-in.'; stayErr.classList.remove('hidden'); }
+          stayOut.value = '';
+          if (stayOut._flatpickr) stayOut._flatpickr.clear();
+          if (stayN) stayN.value = '';
+        } else {
+          if (stayErr) stayErr.classList.add('hidden');
+          if (stayN) stayN.value = diff;
+        }
+      }
+    };
+    stayIn.addEventListener('change', checkStay);
+    stayOut.addEventListener('change', checkStay);
+  }
+
+  // Validación salida/llegada transporte
+  const tDep = document.querySelector('#tDep');
+  const tArr = document.querySelector('#tArr');
+  const tErr = document.querySelector('#transportDateError');
+  if (tDep && tArr) {
+    const checkT = () => {
+      if (tDep.value && tArr.value && tArr.value < tDep.value) {
+        if (tErr) { tErr.textContent = '⚠️ La llegada no puede ser antes de la salida.'; tErr.classList.remove('hidden'); }
+        tArr.value = '';
+        if (tArr._flatpickr) tArr._flatpickr.clear();
+      } else {
+        if (tErr) tErr.classList.add('hidden');
+      }
+    };
+    tDep.addEventListener('change', checkT);
+    tArr.addEventListener('change', checkT);
+  }
+}
+
+// ============================================================
+// NOMINATIM AUTOCOMPLETE — todos los campos de lugar
+// ============================================================
+let _nomTimer = null;
+
+function setupAutocomplete(inputId, listId) {
+  const input = document.querySelector('#' + inputId);
+  const list  = document.querySelector('#' + listId);
+  if (!input || !list || input._acSetup) return;
+  input._acSetup = true;
+
+  input.addEventListener('input', () => {
+    clearTimeout(_nomTimer);
+    const q = input.value.trim();
+    if (q.length < 3) { list.classList.add('hidden'); return; }
+    _nomTimer = setTimeout(async () => {
+      try {
+        const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=es`);
+        const data = await res.json();
+        if (!data.length) { list.classList.add('hidden'); return; }
+        list.innerHTML = data.map(p => {
+          const name = p.display_name.split(',').slice(0, 3).join(', ');
+          return `<li data-name="${name}">${name}</li>`;
+        }).join('');
+        list.classList.remove('hidden');
+        list.querySelectorAll('li').forEach(li => {
+          li.addEventListener('click', () => {
+            input.value = li.dataset.name;
+            list.classList.add('hidden');
+            input.dispatchEvent(new Event('change'));
+          });
+        });
+      } catch(e) { list.classList.add('hidden'); }
+    }, 380);
+  });
+
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !list.contains(e.target)) list.classList.add('hidden');
+  });
+}
+
+function initAutocompletes() {
+  setupAutocomplete('tripDestInput',  'tripDestList');
+  setupAutocomplete('originInput',    'originList');
+  setupAutocomplete('destInput',      'destList');
+  setupAutocomplete('stayAddrInput',  'stayAddrList');
+  setupAutocomplete('itinPlace',      'itinPlaceList');
+  setupAutocomplete('actPlace',       'actPlaceList');
+}
 
 // ============================================================
 // RANKING DE VIAJEROS
