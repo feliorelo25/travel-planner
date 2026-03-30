@@ -191,8 +191,7 @@ function openTrip(trip) {
   }
   $("#overviewBudget").textContent = trip.budget ? `${trip.base_currency} ${trip.budget}` : "Sin definir";
   loadTripItems(trip.id);
-  initMap("miniMap");
-  initMap("fullMap");
+
 }
 
 async function loadTripItems(tripId) {
@@ -1095,7 +1094,15 @@ function initFlatpickr() {
       dateFormat: 'Y-m-d H:i',
       time_24hr: true,
       locale: 'es',
-      allowInput: true
+      allowInput: true,
+      onReady: function(_, __, fp) {
+        const btn = document.createElement('button');
+        btn.textContent = '✓ Confirmar';
+        btn.type = 'button';
+        btn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:linear-gradient(135deg,#14b8a6,#2dd4bf);color:#061018;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;';
+        btn.addEventListener('click', () => fp.close());
+        fp.calendarContainer.appendChild(btn);
+      }
     });
   });
   // Solo hora
