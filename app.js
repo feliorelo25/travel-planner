@@ -157,7 +157,7 @@ async function createTrip(form) {
     cover_image: d.coverImage || d.coverImageFinal || null,
     budget: d.budget ? parseFloat(d.budget) : null
   });
-  if (error) return alert(error.message);
+  if (error) { console.error('Transport save error:', error); return alert(error.message); }
   closeAllModals();
   form.reset();
   await loadTrips();
@@ -393,8 +393,6 @@ async function saveTransportForm(form) {
   if (cont) cont.innerHTML = '';
   const sel = document.getElementById('roundTripSelect');
   if (sel) { sel.value = '0'; toggleReturnLeg('0'); }
-  const typeSelEl = document.querySelector('#transportForm [name="type"]');
-  if (typeSelEl) toggleStayType(typeSelEl.value);
   closeAllModals(); form.reset(); loadTripItems(state.selectedTripId);
 }
 
