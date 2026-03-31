@@ -153,7 +153,7 @@ async function createTrip(form) {
     description: d.description || null,
     status: d.status || "planeado",
     base_currency: d.baseCurrency || "USD",
-    cover_image: d.coverImage || null,
+    cover_image: d.coverImage || d.coverImageFinal || null,
     budget: d.budget ? parseFloat(d.budget) : null
   });
   if (error) return alert(error.message);
@@ -1431,6 +1431,188 @@ function calcConvert() {
     resultEl.textContent = result > 0 ? `$${result.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '–';
   }
   if (rateEl) rateEl.textContent = rateLabel;
+}
+
+// ============================================================
+// SUBIDA DE IMAGEN — Supabase Storage + compresión automática
+// ============================================================
+
+function switchCoverTab(tab, btn) {
+  // Toggle tabs
+  document.querySelectorAll('.cover-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('coverUploadBlock').style.display = tab === 'upload' ? 'block' : 'none';
+  document.getElementById('coverUrlBlock').style.display = tab === 'url' ? 'block' : 'none';
+
+  // If switching to URL, sync the hidden field on input
+  if (tab === 'url') {
+    const urlInput = document.getElementById('coverImageUrl');
+    urlInput.oninput = () => {
+      document.getElementById('coverImageFinal').value = urlInput.value;
+      showCoverPreview(urlInput.value);
+    };
+  }
+}
+
+function showCoverPreview(url) {
+  const preview = document.getElementById('coverPreview');
+  const img = document.getElementById('coverPreviewImg');
+  if (url) {
+    img.src = url;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+async function compressImage(file, maxKB) {
+  maxKB = maxKB || 480;
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        // Max 1920px wide
+        if (w > 1920) { h = Math.round(h * 1920 / w); w = 1920; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // Reduce quality until under maxKB
+        let quality = 0.85;
+        const tryCompress = () => {
+          canvas.toBlob((blob) => {
+            if (blob.size > maxKB * 1024 && quality > 0.2) {
+              quality -= 0.1;
+              tryCompress();
+            } else {
+              resolve(blob);
+            }
+          }, 'image/jpeg', quality);
+        };
+        tryCompress();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleCoverUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('coverUploadStatus');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '⏳ Comprimiendo imagen...';
+
+  try {
+    // Comprimir
+    const compressed = await compressImage(file, 480);
+    const sizeKB = Math.round(compressed.size / 1024);
+    statusEl.textContent = `⏳ Subiendo (${sizeKB}KB)...`;
+
+    // Subir a Supabase Storage
+    const userId = state.currentUser?.id;
+    if (!userId) { statusEl.textContent = '❌ Tenés que estar logueado.'; return; }
+
+    const fileName = `covers/${userId}/${Date.now()}.jpg`;
+    const { data, error } = await supabase.storage
+      .from('trip-covers')
+      .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true });
+
+    if (error) {
+      statusEl.textContent = `❌ Error: ${error.message}`;
+      return;
+    }
+
+    // Obtener URL pública
+    const { data: urlData } = supabase.storage.from('trip-covers').getPublicUrl(fileName);
+    const publicUrl = urlData.publicUrl;
+
+    // Guardar en el campo hidden
+    document.getElementById('coverImageFinal').value = publicUrl;
+    showCoverPreview(publicUrl);
+    statusEl.textContent = `✅ Imagen subida (${sizeKB}KB)`;
+
+  } catch(err) {
+    statusEl.textContent = `❌ Error al subir: ${err.message}`;
+  }
+}
+
+// Drag & drop para la imagen
+document.addEventListener('DOMContentLoaded', () => {
+  const dropzone = document.getElementById('coverDropzone');
+  if (!dropzone) return;
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor = 'var(--teal)'; });
+  dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = ''; });
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const input = document.getElementById('coverFileInput');
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      handleCoverUpload(input);
+    }
+  });
+});
+
+// ============================================================
+// CAMBIAR USERNAME
+// ============================================================
+async function updateUsername() {
+  const input = document.getElementById('newUsernameInput');
+  const msg = document.getElementById('usernameMsg');
+  const newName = input?.value.trim();
+
+  if (!newName) {
+    msg.textContent = '⚠️ Escribí un nombre de usuario.';
+    msg.style.color = 'var(--danger)';
+    msg.style.display = 'block';
+    return;
+  }
+  if (newName.length < 3) {
+    msg.textContent = '⚠️ Mínimo 3 caracteres.';
+    msg.style.color = 'var(--danger)';
+    msg.style.display = 'block';
+    return;
+  }
+
+  msg.textContent = '⏳ Guardando...';
+  msg.style.color = 'var(--muted)';
+  msg.style.display = 'block';
+
+  // Update en profiles table
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ username: newName })
+    .eq('id', state.currentUser.id);
+
+  if (profileError) {
+    msg.textContent = `❌ Error: ${profileError.message}`;
+    msg.style.color = 'var(--danger)';
+    return;
+  }
+
+  // Update en auth metadata
+  await supabase.auth.updateUser({ data: { username: newName } });
+
+  // Update UI
+  msg.textContent = '✅ Nombre actualizado correctamente.';
+  msg.style.color = 'var(--teal)';
+  input.value = '';
+
+  // Refrescar nombre en sidebar y perfil
+  document.getElementById('userNameDisplay').textContent = newName;
+  document.getElementById('profileName').textContent = newName;
+  const letter = newName.charAt(0).toUpperCase();
+  document.querySelectorAll('.avatar').forEach(el => el.textContent = letter);
+  document.getElementById('profileAvatar').textContent = letter;
 }
 
 document.addEventListener("DOMContentLoaded", async () => {

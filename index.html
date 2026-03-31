@@ -368,9 +368,20 @@
             <div class="panel-head"><h3>Mi perfil</h3></div>
             <div class="profile-card-body">
               <div class="avatar xl" id="profileAvatar">?</div>
-              <div>
+              <div style="flex:1;">
                 <h4 id="profileName">–</h4>
-                <p id="profileEmail" style="color:var(--muted);"></p>
+                <p id="profileEmail" style="color:var(--muted);margin-bottom:16px;"></p>
+                <!-- Cambiar username -->
+                <div class="profile-edit-wrap">
+                  <label style="font-size:13px;font-weight:600;color:var(--muted-hi);display:block;margin-bottom:6px;">Cambiar nombre de usuario</label>
+                  <div style="display:flex;gap:10px;">
+                    <input type="text" id="newUsernameInput" placeholder="Nuevo nombre de usuario" style="flex:1;" />
+                    <button class="btn btn-primary" onclick="updateUsername()" style="white-space:nowrap;">
+                      <i class="fa-solid fa-check"></i> Guardar
+                    </button>
+                  </div>
+                  <p id="usernameMsg" style="font-size:13px;margin-top:8px;display:none;"></p>
+                </div>
               </div>
             </div>
           </section>
@@ -379,7 +390,8 @@
             <div class="summary-list">
               <div class="summary-item"><span>Autenticación</span><strong>Supabase Auth</strong></div>
               <div class="summary-item"><span>Base de datos</span><strong>Supabase Postgres</strong></div>
-              <div class="summary-item"><span>Deploy</span><strong>Netlify</strong></div>
+              <div class="summary-item"><span>Deploy</span><strong>Cloudflare Pages</strong></div>
+              <div class="summary-item"><span>Storage</span><strong>Supabase Storage</strong></div>
               <div class="summary-item"><span>Foro</span><strong>Lectura pública</strong></div>
             </div>
           </section>
@@ -422,7 +434,34 @@
         </select>
       </label>
       <label class="full">Descripción<textarea name="description" rows="3"></textarea></label>
-      <label class="full">Imagen de portada (URL)<input name="coverImage" placeholder="https://..." /></label>
+      <label class="full">Imagen de portada
+        <div class="cover-upload-wrap">
+          <div class="cover-upload-tabs">
+            <button type="button" class="cover-tab active" onclick="switchCoverTab('upload', this)">📁 Subir foto</button>
+            <button type="button" class="cover-tab" onclick="switchCoverTab('url', this)">🔗 URL externa</button>
+          </div>
+          <!-- Upload -->
+          <div id="coverUploadBlock">
+            <div class="cover-dropzone" id="coverDropzone" onclick="document.getElementById('coverFileInput').click()">
+              <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.8rem;color:var(--teal);"></i>
+              <p style="margin:8px 0 4px;font-weight:600;">Hacé clic o arrastrá una foto</p>
+              <p class="muted" style="font-size:12px;">JPG, PNG, WEBP · Se comprime a menos de 500KB automáticamente</p>
+            </div>
+            <input type="file" id="coverFileInput" accept="image/*" style="display:none;" onchange="handleCoverUpload(this)" />
+            <div id="coverUploadStatus" style="display:none;margin-top:8px;font-size:13px;color:var(--teal);"></div>
+          </div>
+          <!-- URL -->
+          <div id="coverUrlBlock" style="display:none;">
+            <input name="coverImageUrl" id="coverImageUrl" placeholder="https://..." />
+          </div>
+          <!-- Hidden field que siempre contiene la URL final -->
+          <input type="hidden" name="coverImage" id="coverImageFinal" />
+          <!-- Preview -->
+          <div id="coverPreview" style="display:none;margin-top:10px;">
+            <img id="coverPreviewImg" style="width:100%;height:140px;object-fit:cover;border-radius:12px;border:1px solid var(--line);" />
+          </div>
+        </div>
+      </label>
       <label>Presupuesto estimado<input type="number" step="0.01" name="budget" placeholder="1500" /></label>
       <p id="tripDateError" class="form-error hidden" style="grid-column:1/-1;margin:0"></p>
       <button class="btn btn-primary full" type="submit">Guardar viaje</button>

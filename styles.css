@@ -1215,3 +1215,37 @@ select option { background: #0c1628; }
 }
 .leaflet-popup-tip { background: #0c1628 !important; }
 .leaflet-popup-content { color: #e8f0fa !important; }
+
+/* ============================================================
+   COVER IMAGE UPLOAD
+   ============================================================ */
+.cover-upload-wrap { display: grid; gap: 10px; margin-top: 8px; }
+.cover-upload-tabs { display: flex; gap: 8px; }
+.cover-tab {
+  padding: 8px 16px; border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--muted); font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.cover-tab.active {
+  background: rgba(45,212,191,0.1); color: var(--teal);
+  border-color: rgba(45,212,191,0.3);
+}
+.cover-dropzone {
+  border: 2px dashed rgba(45,212,191,0.3);
+  border-radius: 14px; padding: 24px;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: rgba(45,212,191,0.03);
+}
+.cover-dropzone:hover {
+  border-color: rgba(45,212,191,0.6);
+  background: rgba(45,212,191,0.06);
+}
+
+/* Profile edit */
+.profile-edit-wrap {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+}
