@@ -524,7 +524,7 @@ select option { background: #0c1628; }
 
 .trip-card {
   position: relative; overflow: hidden;
-  border-radius: var(--radius); min-height: 300px;
+  border-radius: var(--radius); min-height: 200px;
   display: flex; flex-direction: column; justify-content: flex-end;
   background-size: cover; background-position: center;
   border: 1px solid var(--line);
@@ -582,7 +582,7 @@ select option { background: #0c1628; }
 }
 .trip-cover-image {
   background-size: cover; background-position: center;
-  min-height: 220px;
+  min-height: 160px;
   background: linear-gradient(135deg, #0f2740, #1e3a5f);
 }
 .trip-cover-content {
@@ -1066,16 +1066,8 @@ select option { background: #0c1628; }
 .gantt-wrap {
   width: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
   min-width: 0;
-  /* Scrollbar solo en el gantt */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(45,212,191,0.35) transparent;
 }
-.gantt-wrap::-webkit-scrollbar { height: 6px; }
-.gantt-wrap::-webkit-scrollbar-track { background: transparent; }
-.gantt-wrap::-webkit-scrollbar-thumb { background: rgba(45,212,191,0.35); border-radius: 999px; }
-.gantt-wrap::-webkit-scrollbar-thumb:hover { background: rgba(45,212,191,0.55); }
 .gantt-header {
   display: flex;
   border-bottom: 1px solid var(--line);
@@ -1083,10 +1075,8 @@ select option { background: #0c1628; }
   margin-bottom: 8px;
   position: sticky;
   top: 0;
-  left: 0;
   background: var(--surface);
   z-index: 2;
-  min-width: max-content;
 }
 .gantt-label-head {
   min-width: 180px;
@@ -1114,7 +1104,7 @@ select option { background: #0c1628; }
   color: var(--teal);
   font-weight: 700;
 }
-.gantt-body { display: grid; gap: 6px; position: relative; min-width: max-content; }
+.gantt-body { display: grid; gap: 6px; position: relative; }
 
 .gantt-today-line {
   position: absolute;
