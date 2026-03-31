@@ -1793,12 +1793,29 @@ function initFlatpickr() {
   // Fecha + hora
   document.querySelectorAll('.fpdatetime:not([data-fp])').forEach(el => {
     el.setAttribute('data-fp', '1');
+    const isArrival = el.id === 'tArr' || el.id === 'retArr' || el.id === 'cruiseArr';
     flatpickr(el, {
       enableTime: true,
       dateFormat: 'Y-m-d H:i',
       time_24hr: true,
       locale: 'es',
       allowInput: true,
+      minuteIncrement: 1,
+      hourIncrement: 1,
+      onOpen: function(selectedDates, dateStr, fp) {
+        // Si es campo de llegada y está vacío, abrir en la fecha de salida
+        if (isArrival && !dateStr) {
+          const depId = fp.element.id === 'tArr' ? 'tDep'
+                      : fp.element.id === 'retArr' ? 'retDep'
+                      : fp.element.id === 'cruiseArr' ? 'cruiseDep' : null;
+          if (depId) {
+            const depEl = document.getElementById(depId);
+            if (depEl && depEl.value) {
+              fp.setDate(depEl.value, false);
+            }
+          }
+        }
+      },
       onReady: function(_, __, fp) {
         const btn = document.createElement('button');
         btn.textContent = '✓ Confirmar';
@@ -1818,7 +1835,9 @@ function initFlatpickr() {
       dateFormat: 'H:i',
       time_24hr: true,
       locale: 'es',
-      allowInput: true
+      allowInput: true,
+      minuteIncrement: 1,
+      hourIncrement: 1
     });
   });
 
