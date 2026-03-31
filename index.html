@@ -270,6 +270,57 @@
         </div>
       </section>
 
+      <!-- CALCULADORA DÓLAR -->
+      <section id="calculadoraSection" class="page-section">
+        <div class="calc-layout">
+          <section class="panel-card glass calc-main">
+            <div class="panel-head">
+              <div>
+                <h3>💱 Calculadora de cambio</h3>
+                <p class="muted">Dólar oficial, blue, tarjeta, MEP y más</p>
+              </div>
+              <button class="btn btn-ghost" style="font-size:12px;" onclick="loadCotizaciones()">
+                <i class="fa-solid fa-rotate"></i> Actualizar
+              </button>
+            </div>
+            <div class="calc-direction-tabs">
+              <button class="calc-dir-btn active" id="dirArsUsd" onclick="setDirection('ars-usd')">ARS → USD</button>
+              <button class="calc-dir-btn" id="dirUsdArs" onclick="setDirection('usd-ars')">USD → ARS</button>
+            </div>
+            <div class="calc-input-wrap">
+              <label class="calc-input-label" id="calcInputLabel">Monto en ARS</label>
+              <div class="calc-input-row">
+                <span class="calc-currency-badge" id="calcCurrencyBadge">$</span>
+                <input type="number" id="calcAmount" placeholder="100000" min="0" step="any"
+                  oninput="calcConvert()" class="calc-amount-input" />
+              </div>
+            </div>
+            <div class="calc-exchange-wrap">
+              <label style="font-size:13px;font-weight:600;color:var(--muted-hi);">Tipo de dólar</label>
+              <select id="calcExchange" onchange="calcConvert()" class="calc-exchange-select">
+                <option value="">Cargando...</option>
+              </select>
+            </div>
+            <div class="calc-result" id="calcResult">
+              <span class="calc-result-label" id="calcResultLabel">Resultado en USD</span>
+              <span class="calc-result-value" id="calcResultValue">–</span>
+              <span class="calc-result-rate" id="calcResultRate"></span>
+            </div>
+          </section>
+          <section class="panel-card glass calc-compare">
+            <div class="panel-head">
+              <div>
+                <h3>📊 Tipos de cambio</h3>
+                <p class="muted">Oficial, blue, bolsa, tarjeta y cripto en tiempo real</p>
+              </div>
+            </div>
+            <div id="calcCompareTable" class="calc-table-wrap">
+              <p class="muted" style="padding:12px 0;">Cargando cotizaciones...</p>
+            </div>
+          </section>
+        </div>
+      </section>
+
       <!-- RANKING -->
       <section id="rankingSection" class="page-section">
         <div class="ranking-header glass">

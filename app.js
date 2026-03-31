@@ -909,16 +909,18 @@ function showSection(sectionId) {
   const titles = {
     dashboardSection: "Mis viajes",
     communitySection: "Foro de viajeros",
+    rankingSection: "Ranking",
+    calculadoraSection: "Calculadora de cambio",
     profileSection: "Mi perfil"
   };
   $("#pageTitle").textContent = titles[sectionId] || "";
 
-  // Mostrar/ocultar botón crear viaje
   const createBtn = $("#createTripBtn");
   createBtn.style.display = sectionId === "dashboardSection" ? "inline-flex" : "none";
 
-  // Cargar foro si corresponde
   if (sectionId === "communitySection") loadForum();
+  if (sectionId === "rankingSection") loadRanking('all');
+  if (sectionId === "calculadoraSection") loadCotizaciones();
 }
 
 function showApp() {
@@ -1325,6 +1327,108 @@ async function editCruise(id) {
     try { JSON.parse(data.stops_data).forEach(() => addCruiseStop()); } catch(e) {}
   }
   openModal('cruiseModal');
+}
+
+// ============================================================
+// CALCULADORA DE CAMBIO — DolarApi.ar
+// ============================================================
+
+let dolarData = [];
+let calcDirection = 'ars-usd';
+
+const DOLAR_NOMBRES = {
+  'oficial':         '🏛 Oficial',
+  'blue':            '💵 Blue',
+  'bolsa':           '📈 Bolsa (MEP)',
+  'contadoconliqui': '🔄 CCL',
+  'tarjeta':         '💳 Tarjeta (+impuestos)',
+  'cripto':          '🪙 Cripto (CCB)',
+  'mayorista':       '🏦 Mayorista',
+};
+
+async function loadCotizaciones() {
+  const tableEl = document.getElementById('calcCompareTable');
+  const selectEl = document.getElementById('calcExchange');
+  if (!tableEl || !selectEl) return;
+
+  tableEl.innerHTML = '<p class="muted" style="padding:12px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando cotizaciones...</p>';
+
+  try {
+    const res = await fetch('https://dolarapi.com/v1/dolares');
+    const data = await res.json();
+    dolarData = data;
+
+    selectEl.innerHTML = data.map(d =>
+      `<option value="${d.nombre}">${DOLAR_NOMBRES[d.nombre] || d.casa} — Compra $${(d.compra||0).toLocaleString('es-AR')}</option>`
+    ).join('');
+
+    const now = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+    tableEl.innerHTML = `
+      <table class="calc-table">
+        <thead><tr><th>Tipo</th><th>Compra</th><th>Venta</th></tr></thead>
+        <tbody>
+          ${data.map((d, i) => {
+            const nombre = DOLAR_NOMBRES[d.nombre] || d.casa;
+            const compra = d.compra ? `$${d.compra.toLocaleString('es-AR', {minimumFractionDigits:2})}` : '—';
+            const venta  = d.venta  ? `$${d.venta.toLocaleString('es-AR',  {minimumFractionDigits:2})}` : '—';
+            const isBlue = d.nombre === 'blue';
+            return `<tr class="${isBlue ? 'calc-table-best' : ''}">
+              <td><strong>${isBlue ? '⭐ ' : ''}${nombre}</strong>${d.nombre === 'tarjeta' ? '<br><span style="font-size:11px;color:var(--muted);">Oficial + impuestos</span>' : ''}</td>
+              <td class="calc-td-bid">${compra}</td>
+              <td class="calc-td-ask">${venta}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <p class="muted" style="font-size:11px;margin-top:10px;text-align:right;">
+        Fuente: <a href="https://dolarapi.com" target="_blank" style="color:var(--teal);">DolarApi.com</a> · ${now}
+      </p>`;
+
+    calcConvert();
+  } catch(err) {
+    console.error('DolarApi error:', err);
+    tableEl.innerHTML = `<p style="color:var(--danger);">Error cargando. Intentá de nuevo.</p>`;
+  }
+}
+
+function setDirection(dir) {
+  calcDirection = dir;
+  document.getElementById('dirArsUsd').classList.toggle('active', dir === 'ars-usd');
+  document.getElementById('dirUsdArs').classList.toggle('active', dir === 'usd-ars');
+  document.getElementById('calcInputLabel').textContent = dir === 'ars-usd' ? 'Monto en ARS' : 'Monto en USD';
+  document.getElementById('calcCurrencyBadge').textContent = dir === 'ars-usd' ? '$' : 'U$D';
+  document.getElementById('calcResultLabel').textContent = dir === 'ars-usd' ? 'Resultado en USD' : 'Resultado en ARS';
+  document.getElementById('calcAmount').placeholder = dir === 'ars-usd' ? '100000' : '100';
+  calcConvert();
+}
+
+function calcConvert() {
+  const amount = parseFloat(document.getElementById('calcAmount')?.value || 0);
+  const selectedNombre = document.getElementById('calcExchange')?.value;
+  const resultEl = document.getElementById('calcResultValue');
+  const rateEl = document.getElementById('calcResultRate');
+  if (!resultEl) return;
+
+  const dolar = dolarData.find(d => d.nombre === selectedNombre);
+  if (!amount || !dolar) {
+    resultEl.textContent = '–';
+    if (rateEl) rateEl.textContent = '';
+    return;
+  }
+
+  let result, rate, rateLabel;
+  if (calcDirection === 'ars-usd') {
+    rate = dolar.compra || dolar.venta || 0;
+    result = rate > 0 ? amount / rate : 0;
+    rateLabel = `Compra: $${rate.toLocaleString('es-AR', {minimumFractionDigits:2})} ARS/USD`;
+    resultEl.textContent = result > 0 ? `U$D ${result.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '–';
+  } else {
+    rate = dolar.venta || dolar.compra || 0;
+    result = rate * amount;
+    rateLabel = `Venta: $${rate.toLocaleString('es-AR', {minimumFractionDigits:2})} ARS/USD`;
+    resultEl.textContent = result > 0 ? `$${result.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '–';
+  }
+  if (rateEl) rateEl.textContent = rateLabel;
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
