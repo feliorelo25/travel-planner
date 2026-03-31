@@ -157,7 +157,7 @@ async function createTrip(form) {
     cover_image: d.coverImage || d.coverImageFinal || null,
     budget: d.budget ? parseFloat(d.budget) : null
   });
-  if (error) { console.error('Transport save error:', error); return alert(error.message); }
+  if (error) return alert(error.message);
   closeAllModals();
   form.reset();
   await loadTrips();
@@ -225,7 +225,6 @@ async function loadTripItems(tripId) {
   const tables = [
     { table: "trip_transports", render: (items) => { renderTransports(items); renderCruises(items); } },
     { table: "trip_stays", render: renderStays },
-    { table: "trip_itinerary", render: renderItinerary },
     { table: "trip_activities", render: renderActivities },
     { table: "trip_expenses", render: renderExpenses },
     { table: "trip_notes", render: renderNotes }
@@ -242,7 +241,6 @@ async function loadTripItems(tripId) {
     allData["trip_transports"],
     allData["trip_stays"],
     allData["trip_activities"],
-    allData["trip_itinerary"]
   );
   // Mapas con alfileres (async, no bloquea UI)
   updateMaps(tripId);
@@ -393,6 +391,8 @@ async function saveTransportForm(form) {
   if (cont) cont.innerHTML = '';
   const sel = document.getElementById('roundTripSelect');
   if (sel) { sel.value = '0'; toggleReturnLeg('0'); }
+  const typeSelEl = document.querySelector('#transportForm [name="type"]');
+  if (typeSelEl) toggleStayType(typeSelEl.value);
   closeAllModals(); form.reset(); loadTripItems(state.selectedTripId);
 }
 
@@ -1707,7 +1707,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const tripItemForms = {
     stayForm: "trip_stays",
-    itineraryForm: "trip_itinerary",
     activityForm: "trip_activities",
     expenseForm: "trip_expenses",
     noteForm: "trip_notes"
@@ -1797,7 +1796,6 @@ function initFlatpickr() {
       enableTime: true,
       dateFormat: 'Y-m-d H:i',
       time_24hr: true,
-      locale: 'es',
       allowInput: true,
       minuteIncrement: 1,
       hourIncrement: 1,
@@ -1833,7 +1831,6 @@ function initFlatpickr() {
       noCalendar: true,
       dateFormat: 'H:i',
       time_24hr: true,
-      locale: 'es',
       allowInput: true,
       minuteIncrement: 1,
       hourIncrement: 1
