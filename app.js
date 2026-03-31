@@ -197,7 +197,7 @@ function openTrip(trip) {
 async function loadTripItems(tripId) {
   state.costs = { transports: {}, stays: {}, activities: {}, expenses: {} };
   const tables = [
-    { table: "trip_transports", render: renderTransports },
+    { table: "trip_transports", render: (items) => { renderTransports(items); renderCruises(items); } },
     { table: "trip_stays", render: renderStays },
     { table: "trip_itinerary", render: renderItinerary },
     { table: "trip_activities", render: renderActivities },
@@ -247,20 +247,6 @@ function itemActions(table, id, editFn) {
 // TRANSPORTE — ida y vuelta + escalas dinámicas
 // ============================================================
 let stopCount = 0;
-
-function toggleStayType(type) {
-  const block = document.getElementById('includesStayToggle');
-  if (block) block.style.display = type === 'barco' ? 'block' : 'none';
-  if (type !== 'barco') {
-    const cb = document.getElementById('includesStayCheck');
-    if (cb) { cb.checked = false; toggleStayDetails(false); }
-  }
-}
-
-function toggleStayDetails(checked) {
-  const block = document.getElementById('stayDetailsBlock');
-  if (block) block.classList.toggle('hidden', !checked);
-}
 
 function toggleReturnLeg(val) {
   const ids = ['returnLegHeader','retOriginLabel','retDestLabel','retDepLabel','retArrLabel'];
@@ -374,21 +360,6 @@ async function saveTransportForm(form) {
   }
   if (error) return alert(error.message);
 
-  // Auto-create stay if includes_stay is checked
-  if (parseInt(d.includes_stay) === 1 && d.stay_name) {
-    const stayPayload = {
-      trip_id: state.selectedTripId,
-      type: 'barco',
-      name: d.stay_name || 'Alojamiento a bordo',
-      address: `${d.origin || ''} → ${d.destination || ''}`,
-      check_in: d.departure ? d.departure.split('T')[0] : null,
-      check_out: d.arrival ? d.arrival.split('T')[0] : null,
-      nights: d.departure && d.arrival ? Math.round((new Date(d.arrival) - new Date(d.departure)) / 86400000) : null,
-      currency: d.currency || 'USD',
-      notes: '🚢 Creado automáticamente desde el transporte'
-    };
-    await supabase.from('trip_stays').insert(stayPayload);
-  }
 
   stopCount = 0;
   const cont = document.getElementById('stopsContainer');
@@ -506,8 +477,9 @@ async function saveTripItem(table, form, extraFields) {
 function renderTransports(items) {
   const el = $("#transportList");
   if (!items.length) { el.innerHTML = emptyMsg("No hay tramos de transporte aún."); return; }
-  state.costs.transports = sumCosts(items);
-  el.innerHTML = items.map(i => `
+  const nonCruise = items.filter(i => i.type !== 'crucero');
+  state.costs.transports = sumCosts(nonCruise);
+  el.innerHTML = nonCruise.map(i => `
     <div class="item-card">
       <div class="item-card-top">
         <div><h4>${i.origin || '?'} → ${i.destination || '?'}</h4></div>
@@ -621,7 +593,7 @@ function renderGantt(transports, stays, activities, itinerary) {
   const events = [];
 
   (transports || []).forEach(t => {
-    const typeIcon = t.type === 'barco' ? '🚢' : t.type === 'tren' ? '🚆' : t.type === 'auto' ? '🚗' : t.type === 'bus' ? '🚌' : '✈';
+    const typeIcon = t.type === 'crucero' ? '🚢' : t.type === 'tren' ? '🚆' : t.type === 'auto' ? '🚗' : t.type === 'bus' ? '🚌' : '✈';
     if (t.departure) events.push({
       date: t.departure.split('T')[0],
       endDate: t.arrival ? t.arrival.split('T')[0] : t.departure.split('T')[0],
@@ -1124,14 +1096,7 @@ function openModal(id) {
     initFlatpickr();
     initAutocompletes();
     // Hook transport type select
-    if (id === 'transportModal') {
-      const typeSel = document.querySelector('#transportForm [name="type"]');
-      if (typeSel && !typeSel._hooked) {
-        typeSel._hooked = true;
-        typeSel.addEventListener('change', e => toggleStayType(e.target.value));
-        toggleStayType(typeSel.value);
-      }
-    }
+
   }, 60);
 }
 
@@ -1193,6 +1158,170 @@ $("#searchTrips") && document.addEventListener("DOMContentLoaded", () => {
 // EVENTOS (DOM ready)
 // ============================================================
 
+// ============================================================
+// CRUCERO / TRAVESÍA
+// ============================================================
+let cruiseStopCount = 0;
+
+function toggleCruiseStay(checked) {
+  // Just visual feedback, always auto-creates stay if checked
+}
+
+function addCruiseStop() {
+  cruiseStopCount++;
+  const idx = cruiseStopCount;
+  const container = document.getElementById('cruiseStopsContainer');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'stop-block';
+  div.id = `cruiseStop_${idx}`;
+  div.innerHTML = `
+    <div class="stop-header">
+      <span class="eyebrow" style="color:var(--gold)"><i class="fa-solid fa-anchor"></i> Puerto ${idx}</span>
+      <button type="button" class="btn btn-ghost danger" style="padding:4px 8px;font-size:12px;" onclick="removeCruiseStop(${idx})">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="form-grid compact-grid" style="margin-top:8px;">
+      <label>Puerto / Ciudad
+        <div class="autocomplete-wrap">
+          <input name="cruise_stop_${idx}_city" id="cruiseStopCity_${idx}" autocomplete="off" placeholder="Ej: Nápoles" />
+          <ul class="autocomplete-list hidden" id="cruiseStopCityList_${idx}"></ul>
+        </div>
+      </label>
+      <label>Llegada<input type="text" class="fpdatetime" name="cruise_stop_${idx}_arrival" placeholder="Fecha y hora" /></label>
+      <label>Salida<input type="text" class="fpdatetime" name="cruise_stop_${idx}_departure" placeholder="Fecha y hora" /></label>
+      <label>Notas<input name="cruise_stop_${idx}_notes" placeholder="Excursión, libre, etc." /></label>
+    </div>`;
+  container.appendChild(div);
+  setupAutocomplete(`cruiseStopCity_${idx}`, `cruiseStopCityList_${idx}`);
+  initFlatpickr();
+}
+
+function removeCruiseStop(idx) {
+  const el = document.getElementById(`cruiseStop_${idx}`);
+  if (el) el.remove();
+}
+
+async function saveCruiseForm(form) {
+  const d = Object.fromEntries(new FormData(form).entries());
+
+  // Validate dates
+  if (d.departure && d.arrival && d.arrival < d.departure) {
+    const err = document.getElementById('cruiseDateError');
+    if (err) { err.textContent = '⚠️ La fecha de regreso no puede ser antes del zarpe.'; err.classList.remove('hidden'); }
+    return;
+  }
+
+  // Collect port stops
+  const portStops = [];
+  let pi = 1;
+  while (d[`cruise_stop_${pi}_city`] !== undefined) {
+    if (d[`cruise_stop_${pi}_city`]) portStops.push({
+      city: d[`cruise_stop_${pi}_city`],
+      arrival: d[`cruise_stop_${pi}_arrival`] || '',
+      departure: d[`cruise_stop_${pi}_departure`] || '',
+      notes: d[`cruise_stop_${pi}_notes`] || ''
+    });
+    pi++;
+  }
+
+  // Save as transport type "crucero"
+  const payload = {
+    trip_id: state.selectedTripId,
+    type: 'crucero',
+    origin: d.departure_port,
+    destination: d.arrival_port || d.departure_port,
+    departure: d.departure || null,
+    arrival: d.arrival || null,
+    company: d.company || null,
+    cost: d.cost ? parseFloat(d.cost) : null,
+    currency: d.currency || 'USD',
+    notes: d.notes || null,
+    stops_count: portStops.length,
+    stops_data: portStops.length ? JSON.stringify(portStops) : null,
+    round_trip: 0
+  };
+
+  const { error } = await supabase.from('trip_transports').insert(payload);
+  if (error) return alert(error.message);
+
+  // Auto-create stay if includes_stay checked
+  if (d.includes_stay === '1') {
+    const nights = d.departure && d.arrival
+      ? Math.round((new Date(d.arrival) - new Date(d.departure)) / 86400000) : null;
+    await supabase.from('trip_stays').insert({
+      trip_id: state.selectedTripId,
+      type: 'barco',
+      name: `🚢 ${d.name}`,
+      address: `${d.departure_port}${d.arrival_port && d.arrival_port !== d.departure_port ? ' → ' + d.arrival_port : ''}`,
+      check_in: d.departure ? d.departure.split('T')[0] : null,
+      check_out: d.arrival ? d.arrival.split('T')[0] : null,
+      nights,
+      cost: d.cost ? parseFloat(d.cost) : null,
+      currency: d.currency || 'USD',
+      notes: `🚢 Alojamiento a bordo — ${d.name}. ${d.notes || ''}`
+    });
+  }
+
+  cruiseStopCount = 0;
+  const cont = document.getElementById('cruiseStopsContainer');
+  if (cont) cont.innerHTML = '';
+  closeAllModals(); form.reset(); loadTripItems(state.selectedTripId);
+}
+
+function renderCruises(items) {
+  const el = document.getElementById('cruiseList');
+  if (!el) return;
+  const cruises = items.filter(i => i.type === 'crucero');
+  if (!cruises.length) { el.innerHTML = ''; return; }
+  el.innerHTML = cruises.map(c => {
+    const portStops = c.stops_data ? (() => { try { return JSON.parse(c.stops_data); } catch(e) { return []; } })() : [];
+    return `
+    <div class="item-card cruise-card">
+      <div class="item-card-top">
+        <div>
+          <h4>🚢 ${c.company ? c.company + ' — ' : ''}${c.origin || ''}${c.destination && c.destination !== c.origin ? ' → ' + c.destination : ' (circuito)'}</h4>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge" style="background:rgba(96,165,250,0.1);color:#60a5fa;">crucero</span>
+          ${itemActions("trip_transports", c.id, "editCruise")}
+        </div>
+      </div>
+      <div class="item-meta">
+        ${c.departure ? `<span><i class="fa-solid fa-ship"></i> Zarpe: ${fmtDate(c.departure)}</span>` : ''}
+        ${c.arrival ? `<span><i class="fa-solid fa-anchor"></i> Regreso: ${fmtDate(c.arrival)}</span>` : ''}
+        ${c.cost ? `<span><i class="fa-solid fa-dollar-sign"></i> ${c.currency} ${parseFloat(c.cost).toFixed(2)}</span>` : ''}
+      </div>
+      ${portStops.length ? `<div class="stops-list" style="margin-top:8px;">${portStops.map((p,i) => `
+        <div class="stop-item"><i class="fa-solid fa-anchor" style="color:var(--gold);"></i>
+          <span>Puerto ${i+1}: <strong>${p.city}</strong>${p.arrival ? ` · Llega ${fmtDate(p.arrival)}` : ''}${p.departure ? ` · Sale ${fmtDate(p.departure)}` : ''}${p.notes ? ` — ${p.notes}` : ''}</span>
+        </div>`).join('')}</div>` : ''}
+      ${c.notes ? `<p class="item-notes">${c.notes}</p>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function editCruise(id) {
+  const { data } = await supabase.from('trip_transports').select('*').eq('id', id).single();
+  if (!data) return;
+  const form = document.querySelector('#cruiseForm');
+  fillForm(form, {
+    name: (data.company ? '' : ''), company: data.company || '',
+    departure_port: data.origin || '', arrival_port: data.destination || '',
+    departure: data.departure || '', arrival: data.arrival || '',
+    cost: data.cost || '', currency: data.currency || 'USD', notes: data.notes || ''
+  });
+  form.dataset.editId = id;
+  cruiseStopCount = 0;
+  const cont = document.getElementById('cruiseStopsContainer');
+  if (cont) cont.innerHTML = '';
+  if (data.stops_data) {
+    try { JSON.parse(data.stops_data).forEach(() => addCruiseStop()); } catch(e) {}
+  }
+  openModal('cruiseModal');
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
 
   // Verificar sesión activa
@@ -1253,6 +1382,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Transport has special handler for stops + return leg
   const tForm = document.querySelector("#transportForm");
   if (tForm) tForm.addEventListener("submit", e => { e.preventDefault(); saveTransportForm(e.target); });
+
+  // Cruise form
+  const cruiseFormEl = document.querySelector('#cruiseForm');
+  if (cruiseFormEl) cruiseFormEl.addEventListener('submit', e => { e.preventDefault(); saveCruiseForm(e.target); });
 
   const tripItemForms = {
     stayForm: "trip_stays",
