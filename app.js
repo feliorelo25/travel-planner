@@ -248,6 +248,20 @@ function itemActions(table, id, editFn) {
 // ============================================================
 let stopCount = 0;
 
+function toggleStayType(type) {
+  const block = document.getElementById('includesStayToggle');
+  if (block) block.style.display = type === 'barco' ? 'block' : 'none';
+  if (type !== 'barco') {
+    const cb = document.getElementById('includesStayCheck');
+    if (cb) { cb.checked = false; toggleStayDetails(false); }
+  }
+}
+
+function toggleStayDetails(checked) {
+  const block = document.getElementById('stayDetailsBlock');
+  if (block) block.classList.toggle('hidden', !checked);
+}
+
 function toggleReturnLeg(val) {
   const ids = ['returnLegHeader','retOriginLabel','retDestLabel','retDepLabel','retArrLabel'];
   ids.forEach(id => {
@@ -359,11 +373,30 @@ async function saveTransportForm(form) {
     ({ error } = await supabase.from('trip_transports').insert(payload));
   }
   if (error) return alert(error.message);
+
+  // Auto-create stay if includes_stay is checked
+  if (parseInt(d.includes_stay) === 1 && d.stay_name) {
+    const stayPayload = {
+      trip_id: state.selectedTripId,
+      type: 'barco',
+      name: d.stay_name || 'Alojamiento a bordo',
+      address: `${d.origin || ''} → ${d.destination || ''}`,
+      check_in: d.departure ? d.departure.split('T')[0] : null,
+      check_out: d.arrival ? d.arrival.split('T')[0] : null,
+      nights: d.departure && d.arrival ? Math.round((new Date(d.arrival) - new Date(d.departure)) / 86400000) : null,
+      currency: d.currency || 'USD',
+      notes: '🚢 Creado automáticamente desde el transporte'
+    };
+    await supabase.from('trip_stays').insert(stayPayload);
+  }
+
   stopCount = 0;
   const cont = document.getElementById('stopsContainer');
   if (cont) cont.innerHTML = '';
   const sel = document.getElementById('roundTripSelect');
   if (sel) { sel.value = '0'; toggleReturnLeg('0'); }
+  const typeSelEl = document.querySelector('#transportForm [name="type"]');
+  if (typeSelEl) toggleStayType(typeSelEl.value);
   closeAllModals(); form.reset(); loadTripItems(state.selectedTripId);
 }
 
@@ -588,12 +621,22 @@ function renderGantt(transports, stays, activities, itinerary) {
   const events = [];
 
   (transports || []).forEach(t => {
+    const typeIcon = t.type === 'barco' ? '🚢' : t.type === 'tren' ? '🚆' : t.type === 'auto' ? '🚗' : t.type === 'bus' ? '🚌' : '✈';
     if (t.departure) events.push({
       date: t.departure.split('T')[0],
       endDate: t.arrival ? t.arrival.split('T')[0] : t.departure.split('T')[0],
-      label: `✈ ${t.origin || ''} → ${t.destination || ''}`,
+      label: `${typeIcon} ${t.origin || ''} → ${t.destination || ''}`,
       type: 'transport', time: t.departure.split('T')[1]?.slice(0,5) || ''
     });
+    // Add return leg if round trip
+    if (parseInt(t.round_trip) === 1 && t.return_departure) {
+      events.push({
+        date: t.return_departure.split('T')[0],
+        endDate: t.return_arrival ? t.return_arrival.split('T')[0] : t.return_departure.split('T')[0],
+        label: `${typeIcon} ${t.return_origin || t.destination || ''} → ${t.return_destination || t.origin || ''} (vuelta)`,
+        type: 'transport', time: t.return_departure.split('T')[1]?.slice(0,5) || ''
+      });
+    }
   });
 
   (stays || []).forEach(s => {
@@ -1080,6 +1123,15 @@ function openModal(id) {
   setTimeout(() => {
     initFlatpickr();
     initAutocompletes();
+    // Hook transport type select
+    if (id === 'transportModal') {
+      const typeSel = document.querySelector('#transportForm [name="type"]');
+      if (typeSel && !typeSel._hooked) {
+        typeSel._hooked = true;
+        typeSel.addEventListener('change', e => toggleStayType(e.target.value));
+        toggleStayType(typeSel.value);
+      }
+    }
   }, 60);
 }
 

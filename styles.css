@@ -1299,3 +1299,8 @@ select option { background: #0c1628; }
   border-radius: 12px;
   display: flex; flex-direction: column; gap: 4px;
 }
+
+/* includes_stay toggle */
+.includes-stay-toggle { padding: 14px; border-radius: 16px; background: rgba(45,212,191,0.05); border: 1px solid rgba(45,212,191,0.15); }
+.toggle-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.toggle-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--teal); cursor: pointer; flex-shrink: 0; }
