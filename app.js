@@ -1,5 +1,5 @@
 // ============================================================
-// VOYANTA — app.js
+// MIVIAJE — app.js
 // ============================================================
 // PASO 1: Reemplazá SUPABASE_URL y SUPABASE_KEY con los tuyos.
 // Los encontrás en: supabase.com → tu proyecto → Settings → API
