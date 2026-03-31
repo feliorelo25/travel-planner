@@ -1066,8 +1066,16 @@ select option { background: #0c1628; }
 .gantt-wrap {
   width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   min-width: 0;
+  /* Scrollbar solo en el gantt */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45,212,191,0.35) transparent;
 }
+.gantt-wrap::-webkit-scrollbar { height: 6px; }
+.gantt-wrap::-webkit-scrollbar-track { background: transparent; }
+.gantt-wrap::-webkit-scrollbar-thumb { background: rgba(45,212,191,0.35); border-radius: 999px; }
+.gantt-wrap::-webkit-scrollbar-thumb:hover { background: rgba(45,212,191,0.55); }
 .gantt-header {
   display: flex;
   border-bottom: 1px solid var(--line);
@@ -1075,8 +1083,10 @@ select option { background: #0c1628; }
   margin-bottom: 8px;
   position: sticky;
   top: 0;
+  left: 0;
   background: var(--surface);
   z-index: 2;
+  min-width: max-content;
 }
 .gantt-label-head {
   min-width: 180px;
@@ -1104,7 +1114,7 @@ select option { background: #0c1628; }
   color: var(--teal);
   font-weight: 700;
 }
-.gantt-body { display: grid; gap: 6px; position: relative; }
+.gantt-body { display: grid; gap: 6px; position: relative; min-width: max-content; }
 
 .gantt-today-line {
   position: absolute;
@@ -1215,133 +1225,3 @@ select option { background: #0c1628; }
 }
 .leaflet-popup-tip { background: #0c1628 !important; }
 .leaflet-popup-content { color: #e8f0fa !important; }
-
-/* Item actions inline */
-.item-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-.item-actions .btn {
-  padding: 5px 9px !important;
-  font-size: 12px !important;
-  border-radius: 10px !important;
-  min-width: 32px;
-  height: 32px;
-}
-
-/* Map links */
-.map-links {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-.map-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  background: rgba(45,212,191,0.08);
-  border: 1px solid rgba(45,212,191,0.2);
-  color: var(--teal);
-  text-decoration: none;
-  transition: background 0.2s, transform 0.15s;
-}
-.map-link:hover { background: rgba(45,212,191,0.16); transform: translateY(-1px); }
-
-/* Itinerary past/today */
-.day-past { opacity: 0.6; }
-.day-today { border-color: rgba(45,212,191,0.35) !important; background: rgba(45,212,191,0.03) !important; }
-.timeline-past .timeline-time { color: var(--muted); }
-.item-past { opacity: 0.55; }
-
-/* Timeline item flex fix for actions */
-.timeline-item { display: grid; grid-template-columns: 70px 1fr auto; gap: 14px; align-items: start; }
-
-/* ============================================================
-   TRANSPORT MODAL — escalas y vuelta
-   ============================================================ */
-.transport-leg-header {
-  padding: 10px 0 4px;
-  border-top: 1px solid var(--line);
-  margin-top: 4px;
-}
-.stop-block {
-  background: rgba(201,168,76,0.06);
-  border: 1px solid rgba(201,168,76,0.2);
-  border-radius: 16px;
-  padding: 14px;
-  margin-bottom: 10px;
-}
-.stop-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-.stops-list { display: grid; gap: 6px; margin-top: 8px; }
-.stop-item {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 13px; color: var(--muted-hi);
-  padding: 6px 10px;
-  background: rgba(201,168,76,0.06);
-  border-radius: 10px;
-}
-.return-leg {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: rgba(96,165,250,0.06);
-  border: 1px solid rgba(96,165,250,0.15);
-  border-radius: 12px;
-  display: flex; flex-direction: column; gap: 4px;
-}
-
-/* includes_stay toggle */
-.includes-stay-toggle { padding: 14px; border-radius: 16px; background: rgba(45,212,191,0.05); border: 1px solid rgba(45,212,191,0.15); }
-.toggle-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; font-size: 14px; }
-.toggle-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--teal); cursor: pointer; flex-shrink: 0; }
-
-/* Cruise card */
-.cruise-card {
-  background: linear-gradient(135deg, rgba(96,165,250,0.06), rgba(45,212,191,0.04));
-  border-color: rgba(96,165,250,0.2);
-}
-.cruise-card:hover { border-color: rgba(96,165,250,0.35); }
-
-/* ============================================================
-   ALERTAS 24HS
-   ============================================================ */
-.alertas-container {
-  border-radius: var(--radius);
-  background: linear-gradient(135deg, rgba(201,168,76,0.08), rgba(201,168,76,0.04));
-  border: 1px solid rgba(201,168,76,0.25);
-  padding: 18px 22px;
-  display: grid; gap: 14px;
-  animation: fadeUp 0.4s ease;
-}
-.alertas-header {
-  display: flex; justify-content: space-between; align-items: center;
-}
-.alertas-list { display: grid; gap: 10px; }
-.alerta-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 12px 16px; border-radius: 16px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(201,168,76,0.15);
-}
-.alerta-icon { font-size: 1.4rem; flex-shrink: 0; }
-.alerta-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.alerta-body strong { font-size: 14px; }
-.alerta-trip {
-  font-size: 12px; color: var(--muted);
-  display: flex; align-items: center; gap: 4px;
-}
-.alerta-trip::before { content: '📌'; font-size: 11px; }
-.alerta-time {
-  font-size: 13px; font-weight: 700;
-  color: var(--gold); white-space: nowrap; flex-shrink: 0;
-}
