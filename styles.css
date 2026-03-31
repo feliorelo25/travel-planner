@@ -1271,3 +1271,26 @@ select option { background: #0c1628; }
   flex-direction: column;
   gap: 12px;
 }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.footer-views {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--teal);
+  font-weight: 600;
+}

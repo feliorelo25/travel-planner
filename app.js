@@ -1640,7 +1640,28 @@ async function updateUsername() {
   document.getElementById('profileAvatar').textContent = letter;
 }
 
+// ============================================================
+// CONTADOR DE VISITAS
+// ============================================================
+async function trackPageView() {
+  try {
+    // Incrementar
+    await supabase.rpc('increment_views');
+    // Leer el total
+    const { data } = await supabase.from('page_views').select('count').eq('id', 1).single();
+    const el = document.getElementById('visitCounter');
+    if (el && data) el.textContent = parseInt(data.count).toLocaleString('es-AR');
+  } catch(e) {
+    // Si falla silenciosamente no importa
+    const el = document.getElementById('visitCounter');
+    if (el) el.textContent = '–';
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+
+  // Contador de visitas
+  trackPageView();
 
   // Verificar sesión activa
   const { data } = await supabase.auth.getUser();
