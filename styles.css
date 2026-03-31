@@ -1249,3 +1249,18 @@ select option { background: #0c1628; }
   border-radius: 16px;
   padding: 16px;
 }
+
+/* Currency badge in modals */
+.currency-badge-display {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(45,212,191,0.08);
+  border: 1px solid rgba(45,212,191,0.25);
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--teal);
+  width: 100%;
+  cursor: default;
+}

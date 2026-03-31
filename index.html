@@ -71,8 +71,8 @@
         <nav class="side-nav">
           <button class="nav-item active" data-section="dashboardSection"><i class="fa-solid fa-house"></i> Dashboard</button>
           <button class="nav-item" data-section="communitySection"><i class="fa-solid fa-comments"></i> Foro</button>
-          <button class="nav-item" data-section="calculadoraSection"><i class="fa-solid fa-dollar-sign"></i> Cambio</button>
           <button class="nav-item" data-section="rankingSection"><i class="fa-solid fa-trophy"></i> Ranking</button>
+          <button class="nav-item" data-section="calculadoraSection"><i class="fa-solid fa-dollar-sign"></i> Cambio</button>
           <button class="nav-item" data-section="profileSection"><i class="fa-solid fa-user"></i> Perfil</button>
         </nav>
       </div>
@@ -148,6 +148,7 @@
                 <span><i class="fa-solid fa-location-dot"></i> <span id="tripDestination"></span></span>
                 <span><i class="fa-solid fa-calendar"></i> <span id="tripDates"></span></span>
                 <span><i class="fa-solid fa-hourglass-half"></i> <span id="tripDays"></span></span>
+                <span id="tripCurrencyInfo" style="color:var(--teal);font-weight:600;"></span>
               </div>
             </div>
           </div>
@@ -274,49 +275,72 @@
       <!-- CALCULADORA DÓLAR -->
       <section id="calculadoraSection" class="page-section">
         <div class="calc-layout">
+
+          <!-- Calculadora principal -->
           <section class="panel-card glass calc-main">
             <div class="panel-head">
               <div>
                 <h3>💱 Calculadora de cambio</h3>
-                <p class="muted">Dólar oficial, blue, tarjeta, MEP y más</p>
+                <p class="muted">Calculá cuánto sale tu compra en pesos o dólares</p>
               </div>
               <button class="btn btn-ghost" style="font-size:12px;" onclick="loadCotizaciones()">
                 <i class="fa-solid fa-rotate"></i> Actualizar
               </button>
             </div>
+
+            <!-- Tabs dirección -->
             <div class="calc-direction-tabs">
-              <button class="calc-dir-btn active" id="dirArsUsd" onclick="setDirection('ars-usd')">ARS → USD</button>
-              <button class="calc-dir-btn" id="dirUsdArs" onclick="setDirection('usd-ars')">USD → ARS</button>
+              <button class="calc-dir-btn active" id="dirArsUsd" onclick="setDirection('ars-usd')">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> ARS → USD
+              </button>
+              <button class="calc-dir-btn" id="dirUsdArs" onclick="setDirection('usd-ars')">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> USD → ARS
+              </button>
             </div>
-            <div class="calc-input-wrap">
-              <label class="calc-input-label" id="calcInputLabel">Monto en ARS</label>
-              <div class="calc-input-row">
-                <span class="calc-currency-badge" id="calcCurrencyBadge">$</span>
-                <input type="number" id="calcAmount" placeholder="100000" min="0" step="any"
-                  oninput="calcConvert()" class="calc-amount-input" />
-              </div>
-            </div>
+
+            <!-- Tipo de dólar -->
             <div class="calc-exchange-wrap">
-              <label style="font-size:13px;font-weight:600;color:var(--muted-hi);">Tipo de dólar</label>
+              <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Tipo de cambio</label>
               <select id="calcExchange" onchange="calcConvert()" class="calc-exchange-select">
                 <option value="">Cargando...</option>
               </select>
             </div>
+
+            <!-- Input monto -->
+            <div class="calc-input-wrap">
+              <label class="calc-input-label" id="calcInputLabel">¿Cuánto querés convertir?</label>
+              <div class="calc-input-row">
+                <span class="calc-currency-badge" id="calcCurrencyBadge">$</span>
+                <input type="number" id="calcAmount" placeholder="10000" min="0" step="any"
+                  oninput="calcConvert()" class="calc-amount-input" />
+              </div>
+            </div>
+
+            <!-- Resultado -->
             <div class="calc-result" id="calcResult">
-              <span class="calc-result-label" id="calcResultLabel">Resultado en USD</span>
-              <span class="calc-result-value" id="calcResultValue">–</span>
+              <div class="calc-result-top">
+                <span class="calc-result-label" id="calcResultLabel">Equivale a</span>
+                <span class="calc-result-value" id="calcResultValue">–</span>
+              </div>
               <span class="calc-result-rate" id="calcResultRate"></span>
             </div>
+
+            <!-- Botón agregar a gastos -->
+            <button class="btn btn-primary full" id="calcAddExpenseBtn" onclick="openCalcExpenseModal()" style="display:none;">
+              <i class="fa-solid fa-plus"></i> Agregar este gasto a un viaje
+            </button>
           </section>
+
+          <!-- Tabla tipos de cambio -->
           <section class="panel-card glass calc-compare">
             <div class="panel-head">
               <div>
                 <h3>📊 Tipos de cambio</h3>
-                <p class="muted">Oficial, blue, bolsa, tarjeta y cripto en tiempo real</p>
+                <p class="muted">Oficial, blue, tarjeta, MEP y más · Tiempo real</p>
               </div>
             </div>
             <div id="calcCompareTable" class="calc-table-wrap">
-              <p class="muted" style="padding:12px 0;">Cargando cotizaciones...</p>
+              <p class="muted" style="padding:12px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</p>
             </div>
           </section>
         </div>
@@ -429,8 +453,9 @@
       </label>
       <label>Moneda base
         <select name="baseCurrency">
-          <option value="USD">USD</option><option value="EUR">EUR</option>
-          <option value="ARS">ARS</option><option value="GBP">GBP</option>
+          <option value="USD">🇺🇸 USD — Dólar</option>
+          <option value="EUR">🇪🇺 EUR — Euro</option>
+          <option value="ARS">🇦🇷 ARS — Peso argentino</option>
         </select>
       </label>
       <label class="full">Descripción<textarea name="description" rows="3"></textarea></label>
@@ -565,7 +590,7 @@
       <label>Check-out<input type="text" class="fpdate" name="check_out" id="stayOut" placeholder="Seleccioná fecha" /></label>
       <label>Noches (auto)<input type="number" name="nights" id="stayNights" placeholder="–" readonly style="background:rgba(45,212,191,0.06);border-color:rgba(45,212,191,0.2);" /></label>
       <label>Costo total<input type="number" step="0.01" name="cost" /></label>
-      <label>Moneda<input name="currency" placeholder="USD" value="USD" /></label>
+      <label>Moneda<div class="currency-badge-display" id="stayCurrencyBadge">USD</div><input type="hidden" name="currency" id="stayCurrencyInput" value="USD" /></label>
       <label class="full">Link reserva<input name="booking_link" placeholder="https://..." /></label>
       <label class="full">Observaciones<textarea name="notes"></textarea></label>
       <p id="stayDateError" class="form-error hidden" style="grid-column:1/-1;margin:0"></p>
@@ -590,7 +615,7 @@
       </label>
       <label>Proveedor<input name="provider" /></label>
       <label>Costo<input type="number" step="0.01" name="cost" /></label>
-      <label>Moneda<input name="currency" placeholder="USD" value="USD" /></label>
+      <label>Moneda<div class="currency-badge-display" id="activityCurrencyBadge">USD</div><input type="hidden" name="currency" id="activityCurrencyInput" value="USD" /></label>
       <label>Personas<input type="number" name="people" min="1" value="1" /></label>
       <label>Estado<select name="booking_status"><option>pendiente</option><option>reservado</option><option>confirmado</option></select></label>
       <label class="full">Observaciones<textarea name="notes"></textarea></label>
@@ -607,7 +632,7 @@
       <label>Concepto<input name="concept" required /></label>
       <label>Categoría<select name="category"><option>transporte</option><option>alojamiento</option><option>comida</option><option>excursiones</option><option>compras</option><option>otros</option></select></label>
       <label>Importe<input type="number" step="0.01" name="amount" required /></label>
-      <label>Moneda<input name="currency" placeholder="USD" value="USD" required /></label>
+      <label>Moneda<div class="currency-badge-display" id="expenseCurrencyBadge">USD</div><input type="hidden" name="currency" id="expenseCurrencyInput" value="USD" /></label>
       <label>Fecha<input type="text" class="fpdate" name="date" placeholder="Seleccioná fecha" /></label>
       <label>Método de pago<input name="payment_method" placeholder="Tarjeta, efectivo..." /></label>
       <label class="full">Notas<textarea name="notes"></textarea></label>
@@ -693,11 +718,46 @@
       </div>
 
       <label>Costo total<input type="number" step="0.01" name="cost" /></label>
-      <label>Moneda<input name="currency" placeholder="USD" value="USD" /></label>
+      <label>Moneda<div class="currency-badge-display" id="cruiseCurrencyBadge">USD</div><input type="hidden" name="currency" id="cruiseCurrencyInput" value="USD" /></label>
       <label class="full">Notas<textarea name="notes" placeholder="Cabina, número de reserva, etc."></textarea></label>
       <p id="cruiseDateError" class="form-error hidden" style="grid-column:1/-1;margin:0"></p>
       <button class="btn btn-primary full" type="submit">Guardar crucero</button>
     </form>
+  </div>
+</div>
+
+<!-- MODAL: AGREGAR GASTO DESDE CALCULADORA -->
+<div id="calcExpenseModal" class="modal hidden">
+  <div class="modal-card glass" style="width:min(500px,100%);">
+    <div class="modal-head">
+      <h3>➕ Agregar gasto a viaje</h3>
+      <button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="form-stack">
+      <div class="calc-expense-preview" id="calcExpensePreview"></div>
+      <label>¿Qué compraste?
+        <input type="text" id="calcExpenseConcept" placeholder="Ej: Zapatillas, cena, tour..." />
+      </label>
+      <label>Categoría
+        <select id="calcExpenseCategory">
+          <option value="compras">compras</option>
+          <option value="comida">comida</option>
+          <option value="transporte">transporte</option>
+          <option value="excursiones">excursiones</option>
+          <option value="alojamiento">alojamiento</option>
+          <option value="otros">otros</option>
+        </select>
+      </label>
+      <label>¿A qué viaje?
+        <select id="calcExpenseTrip">
+          <option value="">Seleccioná un viaje...</option>
+        </select>
+      </label>
+      <p id="calcExpenseError" class="form-error hidden"></p>
+      <button class="btn btn-primary full" onclick="saveCalcExpense()">
+        <i class="fa-solid fa-check"></i> Guardar gasto
+      </button>
+    </div>
   </div>
 </div>
 

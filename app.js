@@ -21,7 +21,8 @@ var state = {
   trips: [],
   selectedTripId: null,
   forumPosts: [],
-  costs: { transports: {}, stays: {}, activities: {}, expenses: {} }
+  costs: { transports: {}, stays: {}, activities: {}, expenses: {} },
+  tripCurrency: 'USD'
 };
 
 function sumCosts(items, amountField, currencyField) {
@@ -170,8 +171,28 @@ async function deleteTrip(id) {
   await loadTrips();
 }
 
+function setTripCurrency(currency) {
+  // Set currency on all item modals to match trip's base currency
+  const pairs = [
+    ['transportCurrencyBadge', 'transportCurrencyInput'],
+    ['stayCurrencyBadge', 'stayCurrencyInput'],
+    ['activityCurrencyBadge', 'activityCurrencyInput'],
+    ['expenseCurrencyBadge', 'expenseCurrencyInput'],
+    ['cruiseCurrencyBadge', 'cruiseCurrencyInput'],
+  ];
+  pairs.forEach(([badgeId, inputId]) => {
+    const badge = document.getElementById(badgeId);
+    const input = document.getElementById(inputId);
+    if (badge) badge.textContent = currency;
+    if (input) input.value = currency;
+  });
+  // Store in state for access during save
+  state.tripCurrency = currency;
+}
+
 function openTrip(trip) {
   state.selectedTripId = trip.id;
+  setTripCurrency(trip.base_currency || 'USD');
   $("#tripDetailSection").classList.remove("hidden");
   $("#tripTitle").textContent = trip.name;
   $("#tripDescription").textContent = trip.description || "";
@@ -189,7 +210,12 @@ function openTrip(trip) {
   } else {
     $("#tripCoverImage").style.backgroundImage = "linear-gradient(135deg, #1e3a5f, #0f2740)";
   }
-  $("#overviewBudget").textContent = trip.budget ? `${trip.base_currency} ${trip.budget}` : "Sin definir";
+  const cur = trip.base_currency || 'USD';
+  $("#overviewBudget").textContent = trip.budget ? `${cur} ${parseFloat(trip.budget).toLocaleString('es-AR', {minimumFractionDigits:2})}` : "Sin definir";
+  // Show currency in stat cards
+  const curLabel = cur === 'USD' ? '🇺🇸 USD' : cur === 'EUR' ? '🇪🇺 EUR' : '🇦🇷 ARS';
+  const curInfo = document.getElementById('tripCurrencyInfo');
+  if (curInfo) curInfo.textContent = `Moneda: ${curLabel}`;
   loadTripItems(trip.id);
 
 }
