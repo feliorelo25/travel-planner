@@ -116,6 +116,9 @@
             <div class="stat-card"><span>Km volados</span><strong id="statTotalSpent">–</strong></div>
           </div>
         </div>
+        <!-- ALERTAS 24HS -->
+        <div id="alertas24h" class="alertas-container hidden"></div>
+
         <div class="section-head">
           <div><h3>Tus viajes</h3><p class="muted">Hacé clic en una tarjeta para ver el panel completo.</p></div>
         </div>
@@ -157,7 +160,6 @@
             <button class="tab active" data-tab="summaryPanel">Resumen</button>
             <button class="tab" data-tab="transportPanel">Vuelos / Ruta</button>
             <button class="tab" data-tab="stayPanel">Alojamiento</button>
-            <button class="tab" data-tab="itineraryPanel">Itinerario</button>
             <button class="tab" data-tab="activitiesPanel">Excursiones</button>
             <button class="tab" data-tab="expensesPanel">Gastos extras</button>
             <button class="tab" data-tab="notesPanel">Notas</button>
@@ -200,15 +202,7 @@
             </div>
           </div>
 
-          <div id="itineraryPanel" class="tab-panel">
-            <div class="panel-card glass">
-              <div class="panel-head between">
-                <h3>Agenda diaria</h3>
-                <button class="btn btn-primary" data-open-modal="itineraryModal"><i class="fa-solid fa-plus"></i> Nueva actividad</button>
-              </div>
-              <div id="itineraryDays" class="itinerary-days"></div>
-            </div>
-          </div>
+          
 
           <div id="activitiesPanel" class="tab-panel">
             <div class="panel-card glass">
@@ -485,28 +479,6 @@
       <label class="full">Observaciones<textarea name="notes"></textarea></label>
       <p id="stayDateError" class="form-error hidden" style="grid-column:1/-1;margin:0"></p>
       <button class="btn btn-primary full" type="submit">Guardar estadía</button>
-    </form>
-  </div>
-</div>
-
-<!-- MODAL: ITINERARIO -->
-<div id="itineraryModal" class="modal hidden">
-  <div class="modal-card glass">
-    <div class="modal-head"><h3>Nueva actividad diaria</h3><button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button></div>
-    <form id="itineraryForm" class="form-grid compact-grid">
-      <label>Día<input type="text" class="fpdate" name="date" placeholder="Seleccioná fecha" required /></label>
-      <label>Horario<input type="text" class="fptime" name="time" placeholder="Seleccioná hora" /></label>
-      <label>Lugar
-        <div class="autocomplete-wrap">
-          <input name="place" id="itinPlace" autocomplete="off" placeholder="Ej: Coliseo, Roma" />
-          <ul class="autocomplete-list hidden" id="itinPlaceList"></ul>
-        </div>
-      </label>
-      <label>Actividad<input name="title" required /></label>
-      <label>Prioridad<select name="priority"><option>alta</option><option>media</option><option>baja</option></select></label>
-      <label>Estado<select name="status"><option>pendiente</option><option>reservado</option><option>realizado</option></select></label>
-      <label class="full">Descripción<textarea name="description"></textarea></label>
-      <button class="btn btn-primary full" type="submit">Guardar actividad</button>
     </form>
   </div>
 </div>

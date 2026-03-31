@@ -1311,3 +1311,37 @@ select option { background: #0c1628; }
   border-color: rgba(96,165,250,0.2);
 }
 .cruise-card:hover { border-color: rgba(96,165,250,0.35); }
+
+/* ============================================================
+   ALERTAS 24HS
+   ============================================================ */
+.alertas-container {
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(201,168,76,0.08), rgba(201,168,76,0.04));
+  border: 1px solid rgba(201,168,76,0.25);
+  padding: 18px 22px;
+  display: grid; gap: 14px;
+  animation: fadeUp 0.4s ease;
+}
+.alertas-header {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.alertas-list { display: grid; gap: 10px; }
+.alerta-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 16px; border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(201,168,76,0.15);
+}
+.alerta-icon { font-size: 1.4rem; flex-shrink: 0; }
+.alerta-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.alerta-body strong { font-size: 14px; }
+.alerta-trip {
+  font-size: 12px; color: var(--muted);
+  display: flex; align-items: center; gap: 4px;
+}
+.alerta-trip::before { content: '📌'; font-size: 11px; }
+.alerta-time {
+  font-size: 13px; font-weight: 700;
+  color: var(--gold); white-space: nowrap; flex-shrink: 0;
+}

@@ -140,6 +140,7 @@ async function loadTrips() {
   state.trips = data || [];
   renderTrips();
   updateStats();
+  loadAlertas();
 }
 
 async function createTrip(form) {
@@ -199,7 +200,6 @@ async function loadTripItems(tripId) {
   const tables = [
     { table: "trip_transports", render: (items) => { renderTransports(items); renderCruises(items); } },
     { table: "trip_stays", render: renderStays },
-    { table: "trip_itinerary", render: renderItinerary },
     { table: "trip_activities", render: renderActivities },
     { table: "trip_expenses", render: renderExpenses },
     { table: "trip_notes", render: renderNotes }
@@ -215,8 +215,7 @@ async function loadTripItems(tripId) {
   renderGantt(
     allData["trip_transports"],
     allData["trip_stays"],
-    allData["trip_activities"],
-    allData["trip_itinerary"]
+    allData["trip_activities"]
   );
   // Mapas con alfileres (async, no bloquea UI)
   updateMaps(tripId);
@@ -411,16 +410,6 @@ async function editStay(id) {
   openModal("stayModal");
 }
 
-async function editItinerary(id) {
-  const { data } = await supabase.from("trip_itinerary").select("*").eq("id", id).single();
-  if (!data) return;
-  const form = document.querySelector("#itineraryForm");
-  fillForm(form, { date: data.date, time: data.time, place: data.place,
-    title: data.title, priority: data.priority, status: data.status, description: data.description });
-  form.dataset.editId = id;
-  openModal("itineraryModal");
-}
-
 async function editActivity(id) {
   const { data } = await supabase.from("trip_activities").select("*").eq("id", id).single();
   if (!data) return;
@@ -543,49 +532,11 @@ function renderStays(items) {
   `).join("") + subtotalBar(state.costs.stays, "Subtotal alojamiento");
 }
 
-function renderItinerary(items) {
-  const el = $("#itineraryDays");
-  if (!items.length) { el.innerHTML = emptyMsg("Sin actividades en el itinerario."); return; }
-  const byDay = {};
-  items.forEach(i => {
-    const day = i.date || "Sin fecha";
-    if (!byDay[day]) byDay[day] = [];
-    byDay[day].push(i);
-  });
-  const today = new Date(); today.setHours(0,0,0,0);
-  el.innerHTML = Object.entries(byDay).sort(([a],[b])=>a.localeCompare(b)).map(([day, acts]) => {
-    const dayDate = new Date(day);
-    const isPast = day !== "Sin fecha" && dayDate < today;
-    const isToday = day !== "Sin fecha" && dayDate.toDateString() === today.toDateString();
-    return `
-    <div class="day-block ${isPast?'day-past':''} ${isToday?'day-today':''}">
-      <div class="day-header">
-        <strong>${fmtDate(day)}</strong>
-        ${isToday ? '<span class="badge" style="background:rgba(45,212,191,0.2);color:var(--teal)">Hoy</span>' : ''}
-        ${isPast ? '<span class="badge" style="color:var(--muted)">Pasado</span>' : ''}
-      </div>
-      <div class="day-timeline">
-        ${acts.map(a => `
-          <div class="timeline-item ${isPast?'timeline-past':''}">
-            <span class="timeline-time">${a.time || "--:--"}</span>
-            <div class="timeline-content" style="flex:1;">
-              <h4>${a.title}</h4>
-              <p>${a.place || ""} ${a.description || ""}</p>
-              ${a.place ? mapsLink(a.place) : ""}
-            </div>
-            ${itemActions("trip_itinerary", a.id, "editItinerary")}
-          </div>
-        `).join("")}
-      </div>
-    </div>`;
-  }).join("");
-}
-
 // ============================================================
 // GANTT DEL ITINERARIO
 // ============================================================
 
-function renderGantt(transports, stays, activities, itinerary) {
+function renderGantt(transports, stays, activities) {
   const ganttEl = document.querySelector('#ganttContainer');
   if (!ganttEl) return;
 
@@ -627,13 +578,7 @@ function renderGantt(transports, stays, activities, itinerary) {
     });
   });
 
-  (itinerary || []).forEach(i => {
-    if (i.date) events.push({
-      date: i.date, endDate: i.date,
-      label: `📍 ${i.title}`,
-      type: 'itinerary', time: i.time || ''
-    });
-  });
+
 
   if (!events.length) {
     ganttEl.innerHTML = '<p class="muted" style="padding:20px 0;">Agregá fechas a tus actividades para ver el Gantt.</p>';
@@ -705,7 +650,6 @@ function renderGantt(transports, stays, activities, itinerary) {
       <span><span class="legend-dot" style="background:#2dd4bf"></span>Transporte</span>
       <span><span class="legend-dot" style="background:#c9a84c"></span>Alojamiento</span>
       <span><span class="legend-dot" style="background:#a78bfa"></span>Excursiones</span>
-      <span><span class="legend-dot" style="background:#60a5fa"></span>Itinerario</span>
       <span><span class="legend-dot" style="background:rgba(255,255,255,0.2)"></span>Pasado</span>
     </div>`;
 }
@@ -1322,6 +1266,75 @@ async function editCruise(id) {
   openModal('cruiseModal');
 }
 
+
+// ============================================================
+// ALERTAS 24HS — Dashboard
+// ============================================================
+async function loadAlertas() {
+  const el = document.getElementById('alertas24h');
+  if (!el || !state.currentUser) return;
+
+  const now = new Date();
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const nowISO = now.toISOString();
+  const in24ISO = in24h.toISOString();
+  const nowDate = now.toISOString().split('T')[0];
+  const in24Date = in24h.toISOString().split('T')[0];
+
+  const tripIds = state.trips.map(t => t.id);
+  if (!tripIds.length) { el.classList.add('hidden'); return; }
+
+  // Fetch all upcoming items in parallel
+  const [transRes, stayRes, actRes] = await Promise.all([
+    supabase.from('trip_transports').select('*, trips(name)').in('trip_id', tripIds)
+      .gte('departure', nowISO).lte('departure', in24ISO),
+    supabase.from('trip_stays').select('*, trips(name)').in('trip_id', tripIds)
+      .gte('check_in', nowDate).lte('check_in', in24Date),
+    supabase.from('trip_activities').select('*, trips(name)').in('trip_id', tripIds)
+      .gte('date', nowDate).lte('date', in24Date)
+  ]);
+
+  const alerts = [];
+
+  (transRes.data || []).forEach(t => {
+    if (t.type === 'crucero') {
+      alerts.push({ icon: '🚢', color: '#60a5fa', text: `Zarpe: ${t.origin} → ${t.destination}`, time: fmtDate(t.departure), trip: t.trips?.name || '' });
+    } else {
+      const icon = t.type === 'tren' ? '🚆' : t.type === 'auto' ? '🚗' : t.type === 'bus' ? '🚌' : '✈️';
+      alerts.push({ icon, color: '#2dd4bf', text: `${t.origin || ''} → ${t.destination || ''}`, time: fmtDate(t.departure), trip: t.trips?.name || '' });
+    }
+  });
+
+  (stayRes.data || []).forEach(s => {
+    alerts.push({ icon: '🏨', color: '#c9a84c', text: `Check-in: ${s.name}`, time: fmtDate(s.check_in), trip: s.trips?.name || '' });
+  });
+
+  (actRes.data || []).forEach(a => {
+    alerts.push({ icon: '🎯', color: '#a78bfa', text: a.name, time: `${fmtDate(a.date)}${a.time ? ' ' + a.time : ''}`, trip: a.trips?.name || '' });
+  });
+
+  if (!alerts.length) { el.classList.add('hidden'); return; }
+
+  el.classList.remove('hidden');
+  el.innerHTML = `
+    <div class="alertas-header">
+      <span class="eyebrow"><i class="fa-solid fa-bell" style="color:var(--gold);"></i> Próximas 24 horas</span>
+      <span class="muted" style="font-size:12px;">${alerts.length} evento${alerts.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div class="alertas-list">
+      ${alerts.map(a => `
+        <div class="alerta-item">
+          <span class="alerta-icon">${a.icon}</span>
+          <div class="alerta-body">
+            <strong>${a.text}</strong>
+            ${a.trip ? `<span class="alerta-trip">${a.trip}</span>` : ''}
+          </div>
+          <span class="alerta-time">${a.time}</span>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
 
   // Verificar sesión activa
@@ -1389,7 +1402,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const tripItemForms = {
     stayForm: "trip_stays",
-    itineraryForm: "trip_itinerary",
     activityForm: "trip_activities",
     expenseForm: "trip_expenses",
     noteForm: "trip_notes"
@@ -1610,7 +1622,6 @@ function initAutocompletes() {
   setupAutocomplete('originInput',    'originList');
   setupAutocomplete('destInput',      'destList');
   setupAutocomplete('stayAddrInput',  'stayAddrList');
-  setupAutocomplete('itinPlace',      'itinPlaceList');
   setupAutocomplete('actPlace',       'actPlaceList');
 }
 
