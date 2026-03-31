@@ -275,7 +275,8 @@ function itemActions(table, id, editFn) {
 let stopCount = 0;
 
 function toggleReturnLeg(val) {
-  const ids = ['returnLegHeader','retOriginLabel','retDestLabel','retDepLabel','retArrLabel'];
+  // returnLegHeader + the two col divs (retOriginLabel, retDestLabel)
+  const ids = ['returnLegHeader','retOriginLabel','retDestLabel'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('hidden', val !== '1');
@@ -1803,38 +1804,16 @@ function initFlatpickr() {
       minuteIncrement: 1,
       hourIncrement: 1,
       onOpen: function(selectedDates, dateStr, fp) {
-        if (!dateStr) {
-          const elId = fp.element.id;
-          const elName = fp.element.name || '';
-
-          // Llegada principal → abrir en fecha de salida principal
-          if (elId === 'tArr') {
-            const dep = document.getElementById('tDep');
-            if (dep && dep.value) { fp.setDate(dep.value, false); return; }
-          }
-          // Vuelta llegada → abrir en fecha de salida vuelta
-          if (elId === 'retArr') {
-            const dep = document.getElementById('retDep');
-            if (dep && dep.value) { fp.setDate(dep.value, false); return; }
-          }
-          // Crucero llegada → abrir en fecha zarpe
-          if (elId === 'cruiseArr') {
-            const dep = document.getElementById('cruiseDep');
-            if (dep && dep.value) { fp.setDate(dep.value, false); return; }
-          }
-
-          // Escalas de transporte: stop_N_arrival o stop_N_departure
-          // → abrir en la fecha de salida principal (tDep)
-          if (elName.match(/^stop_\d+_(arrival|departure)$/)) {
-            const dep = document.getElementById('tDep');
-            if (dep && dep.value) { fp.setDate(dep.value, false); return; }
-          }
-
-          // Escalas de crucero: cruise_stop_N_arrival o cruise_stop_N_departure
-          // → abrir en fecha zarpe (cruiseDep)
-          if (elName.match(/^cruise_stop_\d+_(arrival|departure)$/)) {
-            const dep = document.getElementById('cruiseDep');
-            if (dep && dep.value) { fp.setDate(dep.value, false); return; }
+        // Si es campo de llegada y está vacío, abrir en la fecha de salida
+        if (isArrival && !dateStr) {
+          const depId = fp.element.id === 'tArr' ? 'tDep'
+                      : fp.element.id === 'retArr' ? 'retDep'
+                      : fp.element.id === 'cruiseArr' ? 'cruiseDep' : null;
+          if (depId) {
+            const depEl = document.getElementById(depId);
+            if (depEl && depEl.value) {
+              fp.setDate(depEl.value, false);
+            }
           }
         }
       },

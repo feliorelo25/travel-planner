@@ -518,20 +518,25 @@
         <span class="eyebrow"><i class="fa-solid fa-plane-departure"></i> Tramo de ida</span>
       </div>
 
-      <label>Origen
-        <div class="autocomplete-wrap">
-          <input name="origin" id="originInput" autocomplete="off" placeholder="Ej: Buenos Aires" required />
-          <ul class="autocomplete-list hidden" id="originList"></ul>
-        </div>
-      </label>
-      <label>Destino
-        <div class="autocomplete-wrap">
-          <input name="destination" id="destInput" autocomplete="off" placeholder="Ej: Madrid" required />
-          <ul class="autocomplete-list hidden" id="destList"></ul>
-        </div>
-      </label>
-      <label>Salida<input type="text" class="fpdatetime" name="departure" id="tDep" placeholder="Fecha y hora" /></label>
-      <label>Llegada<input type="text" class="fpdatetime" name="arrival" id="tArr" placeholder="Fecha y hora" /></label>
+      <!-- Origen + Salida en misma columna | Destino + Llegada en otra -->
+      <div class="transport-leg-col">
+        <label>Origen
+          <div class="autocomplete-wrap">
+            <input name="origin" id="originInput" autocomplete="off" placeholder="Ej: Buenos Aires" required />
+            <ul class="autocomplete-list hidden" id="originList"></ul>
+          </div>
+        </label>
+        <label>Salida<input type="text" class="fpdatetime" name="departure" id="tDep" placeholder="Fecha y hora" /></label>
+      </div>
+      <div class="transport-leg-col">
+        <label>Destino
+          <div class="autocomplete-wrap">
+            <input name="destination" id="destInput" autocomplete="off" placeholder="Ej: Madrid" required />
+            <ul class="autocomplete-list hidden" id="destList"></ul>
+          </div>
+        </label>
+        <label>Llegada<input type="text" class="fpdatetime" name="arrival" id="tArr" placeholder="Fecha y hora" /></label>
+      </div>
 
       <!-- Escalas dinámicas -->
       <div class="full" id="stopsContainer"></div>
@@ -545,20 +550,24 @@
       <div class="full transport-leg-header hidden" id="returnLegHeader">
         <span class="eyebrow"><i class="fa-solid fa-plane-arrival"></i> Tramo de vuelta</span>
       </div>
-      <label class="hidden" id="retOriginLabel">Origen vuelta
-        <div class="autocomplete-wrap">
-          <input name="return_origin" id="retOriginInput" autocomplete="off" placeholder="Ej: Madrid" />
-          <ul class="autocomplete-list hidden" id="retOriginList"></ul>
-        </div>
-      </label>
-      <label class="hidden" id="retDestLabel">Destino vuelta
-        <div class="autocomplete-wrap">
-          <input name="return_destination" id="retDestInput" autocomplete="off" placeholder="Ej: Buenos Aires" />
-          <ul class="autocomplete-list hidden" id="retDestList"></ul>
-        </div>
-      </label>
-      <label class="hidden" id="retDepLabel">Salida vuelta<input type="text" class="fpdatetime" name="return_departure" id="retDep" placeholder="Fecha y hora" /></label>
-      <label class="hidden" id="retArrLabel">Llegada vuelta<input type="text" class="fpdatetime" name="return_arrival" id="retArr" placeholder="Fecha y hora" /></label>
+      <div class="transport-leg-col hidden" id="retOriginLabel">
+        <label>Origen vuelta
+          <div class="autocomplete-wrap">
+            <input name="return_origin" id="retOriginInput" autocomplete="off" placeholder="Ej: Madrid" />
+            <ul class="autocomplete-list hidden" id="retOriginList"></ul>
+          </div>
+        </label>
+        <label id="retDepLabel">Salida vuelta<input type="text" class="fpdatetime" name="return_departure" id="retDep" placeholder="Fecha y hora" /></label>
+      </div>
+      <div class="transport-leg-col hidden" id="retDestLabel">
+        <label>Destino vuelta
+          <div class="autocomplete-wrap">
+            <input name="return_destination" id="retDestInput" autocomplete="off" placeholder="Ej: Buenos Aires" />
+            <ul class="autocomplete-list hidden" id="retDestList"></ul>
+          </div>
+        </label>
+        <label id="retArrLabel">Llegada vuelta<input type="text" class="fpdatetime" name="return_arrival" id="retArr" placeholder="Fecha y hora" /></label>
+      </div>
 
       <!-- Info común -->
       <label>Empresa<input name="company" /></label>

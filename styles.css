@@ -1264,3 +1264,10 @@ select option { background: #0c1628; }
   width: 100%;
   cursor: default;
 }
+
+/* Transport modal — columnas origen/destino */
+.transport-leg-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
