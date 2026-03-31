@@ -1359,7 +1359,7 @@ async function loadCotizaciones() {
     dolarData = data;
 
     selectEl.innerHTML = data.map(d =>
-      `<option value="${d.nombre}">${DOLAR_NOMBRES[d.nombre] || d.casa} — Compra $${(d.compra||0).toLocaleString('es-AR')}</option>`
+      `<option value="${d.nombre}">${DOLAR_NOMBRES[d.nombre] || d.casa} — Venta $${(d.venta||d.compra||0).toLocaleString('es-AR')}</option>`
     ).join('');
 
     const now = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
@@ -1418,14 +1418,16 @@ function calcConvert() {
 
   let result, rate, rateLabel;
   if (calcDirection === 'ars-usd') {
-    rate = dolar.compra || dolar.venta || 0;
+    // Comprás USD → pagás el precio de venta
+    rate = dolar.venta || dolar.compra || 0;
     result = rate > 0 ? amount / rate : 0;
-    rateLabel = `Compra: $${rate.toLocaleString('es-AR', {minimumFractionDigits:2})} ARS/USD`;
+    rateLabel = `Venta: $${rate.toLocaleString('es-AR', {minimumFractionDigits:2})} ARS/USD`;
     resultEl.textContent = result > 0 ? `U$D ${result.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '–';
   } else {
-    rate = dolar.venta || dolar.compra || 0;
+    // Vendés USD → te pagan el precio de compra
+    rate = dolar.compra || dolar.venta || 0;
     result = rate * amount;
-    rateLabel = `Venta: $${rate.toLocaleString('es-AR', {minimumFractionDigits:2})} ARS/USD`;
+    rateLabel = `Compra: $${rate.toLocaleString('es-AR', {minimumFractionDigits:2})} ARS/USD`;
     resultEl.textContent = result > 0 ? `$${result.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '–';
   }
   if (rateEl) rateEl.textContent = rateLabel;
