@@ -665,18 +665,24 @@ function renderGantt(transports, stays, activities, itinerary) {
     return;
   }
 
+  // Parsear fecha YYYY-MM-DD como local (evita desfase de zona horaria)
+  function parseLocalDate(str) {
+    if (!str) return null;
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
   // Calcular rango de fechas
   const allDates = events.flatMap(e => [e.date, e.endDate]).filter(Boolean).sort();
-  const minDate = new Date(allDates[0]);
-  const maxDate = new Date(allDates[allDates.length - 1]);
+  const minDate = parseLocalDate(allDates[0]);
+  const maxDate = parseLocalDate(allDates[allDates.length - 1]);
   const today = new Date(); today.setHours(0,0,0,0);
   const totalDays = Math.max(Math.round((maxDate - minDate) / 86400000) + 1, 1);
 
   // Generar cabecera de días
   const days = [];
   for (let i = 0; i <= totalDays; i++) {
-    const d = new Date(minDate);
-    d.setDate(d.getDate() + i);
+    const d = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate() + i);
     days.push(d);
   }
 
@@ -692,11 +698,11 @@ function renderGantt(transports, stays, activities, itinerary) {
   }).join('');
 
   const rows = events.sort((a,b) => a.date.localeCompare(b.date)).map(ev => {
-    const start = Math.round((new Date(ev.date) - minDate) / 86400000);
-    const duration = Math.max(Math.round((new Date(ev.endDate) - new Date(ev.date)) / 86400000) + 1, 1);
+    const start = Math.round((parseLocalDate(ev.date) - minDate) / 86400000);
+    const duration = Math.max(Math.round((parseLocalDate(ev.endDate) - parseLocalDate(ev.date)) / 86400000) + 1, 1);
     const pct = (start / (totalDays + 1)) * 100;
     const width = (duration / (totalDays + 1)) * 100;
-    const isPast = new Date(ev.endDate) < today;
+    const isPast = parseLocalDate(ev.endDate) < today;
     const color = typeColors[ev.type];
 
     return `
